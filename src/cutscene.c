@@ -11,9 +11,9 @@ extern void put_text(uint8_t col, uint8_t row, const char* text, uint8_t pal);
 
 /* Hardware sprite indices used during cutscenes.
  * We reuse the same slots as gameplay (no gameplay active). */
-#define CS_SPR_PAC_BASE     0   /* sprites 0-3: Pac-Man 2x2 in Phase 1 */
+#define CS_SPR_PAC_BASE     0   /* sprites 0-3: ZPac 2x2 in Phase 1 */
 #define CS_SPR_GHOST_P1     4   /* sprites 4-7: Blinky 2x2 in Phase 1 */
-#define CS_SPR_BIGPAC_BASE  0   /* sprites 0-8: Big Pac-Man 3x3 in Phase 2 */
+#define CS_SPR_BIGPAC_BASE  0   /* sprites 0-8: Big ZPac 3x3 in Phase 2 */
 #define CS_SPR_GHOST_P2     9   /* sprites 9-12: Ghost 2x2 in Phase 2 */
 
 /* Screen dimensions */
@@ -109,7 +109,7 @@ static void cs_render_3x3(uint8_t base_spr, int16_t px, int16_t py,
     }
 }
 
-/* Pac-Man animation tiles: wide, medium, closed */
+/* ZPac animation tiles: wide, medium, closed */
 static const uint16_t pac_wide[4] = {
     SPR_PAC_RIGHT_WIDE_TL, SPR_PAC_RIGHT_WIDE_TR,
     SPR_PAC_RIGHT_WIDE_BL, SPR_PAC_RIGHT_WIDE_BR
@@ -128,7 +128,7 @@ static const uint16_t * const pac_anim[4] = {
     pac_wide, pac_med, pac_closed, pac_med
 };
 
-/* Big Pac-Man animation tiles (3x3 = 9 tiles per frame) */
+/* Big ZPac animation tiles (3x3 = 9 tiles per frame) */
 static const uint16_t bigpac_wide[9] = {
     SPR_BIGPAC_WIDE_TL, SPR_BIGPAC_WIDE_TC, SPR_BIGPAC_WIDE_TR,
     SPR_BIGPAC_WIDE_ML, SPR_BIGPAC_WIDE_MC, SPR_BIGPAC_WIDE_MR,
@@ -251,7 +251,7 @@ static void cs_wait(uint16_t frames) {
 }
 
 /* ================================================================
- * ACT 1: Pac-Man chased by Blinky, then roles reversed
+ * ACT 1: ZPac chased by Blinky, then roles reversed
  * ================================================================ */
 static void cutscene_act1(void) {
     int16_t pac_x, ghost_x;
@@ -262,8 +262,8 @@ static void cutscene_act1(void) {
     /* Start intermission music */
     sound_intermission_start();
 
-    /* Phase 1: Pac-Man runs left, Blinky chases from behind.
-     * Pac-Man starts at x=660, moves left at 2 px/frame.
+    /* Phase 1: ZPac runs left, Blinky chases from behind.
+     * ZPac starts at x=660, moves left at 2 px/frame.
      * Blinky starts at x=720, moves left at 2.5 px/frame (gains on Pac). */
     pac_x = 660;
     ghost_x = 760;
@@ -274,7 +274,7 @@ static void cutscene_act1(void) {
         gfx_wait_end_vblank(&vctx);
         sound_intermission_update();
 
-        /* Animate Pac-Man (mouth cycle) */
+        /* Animate ZPac (mouth cycle) */
         pac_tiles = pac_anim[(tick / CS_ANIM_SPEED) & 3];
         cs_render_2x2(CS_SPR_PAC_BASE, pac_x, CS_Y,
                        pac_tiles, PAL_ZPAC, 1);  /* flip_x=1 for LEFT */
@@ -298,15 +298,15 @@ static void cutscene_act1(void) {
     cs_wait(60);  /* ~1 second pause */
 
     /* Phase 2: Blinky frightened enters from left, runs right (slow).
-     * After a delay, Pac-Man (big placeholder) enters from left (fast).
-     * Pac-Man gains but never catches Blinky. Both exit right. */
+     * After a delay, ZPac (big placeholder) enters from left (fast).
+     * ZPac gains but never catches Blinky. Both exit right. */
     ghost_x = -32;
     pac_x = -32;  /* Pac starts off-screen, enters later */
     tick = 0;
 
     {
-        uint8_t pac_visible = 0;  /* Pac-Man not yet on screen */
-        uint16_t pac_delay = 90;  /* frames before Pac-Man enters (~1.5 sec) */
+        uint8_t pac_visible = 0;  /* ZPac not yet on screen */
+        uint16_t pac_delay = 90;  /* frames before ZPac enters (~1.5 sec) */
 
         while (ghost_x < 680) {
             gfx_wait_vblank(&vctx);
@@ -319,7 +319,7 @@ static void cutscene_act1(void) {
             cs_render_2x2(CS_SPR_GHOST_P2, ghost_x, CS_Y,
                            ghost_tiles, PAL_FRIGHTENED, 0);
 
-            /* Pac-Man: enters after delay */
+            /* ZPac: enters after delay */
             if (tick >= pac_delay) {
                 if (!pac_visible) {
                     pac_visible = 1;
@@ -332,7 +332,7 @@ static void cutscene_act1(void) {
                                    bp_tiles, PAL_ZPAC);
                 }
 
-                /* Pac-Man moves a bit faster than ghost */
+                /* ZPac moves a bit faster than ghost */
                 pac_x += 2;
                 if (tick & 1) pac_x++;
             }
@@ -379,7 +379,7 @@ static void cutscene_act2(void) {
     /* Start intermission music */
     sound_intermission_start();
 
-    /* ---- Phase 1: Pac-Man and Blinky run left ---- */
+    /* ---- Phase 1: ZPac and Blinky run left ---- */
     pac_x = 660;
     ghost_x = 760;
     tick = 0;
@@ -389,7 +389,7 @@ static void cutscene_act2(void) {
         gfx_wait_end_vblank(&vctx);
         sound_intermission_update();
 
-        /* Animate Pac-Man */
+        /* Animate ZPac */
         pac_tiles = pac_anim[(tick / CS_ANIM_SPEED) & 3];
         cs_render_2x2(CS_SPR_PAC_BASE, pac_x, CS_Y,
                        pac_tiles, PAL_ZPAC, 1);
@@ -429,7 +429,7 @@ static void cutscene_act2(void) {
         tick++;
     }
 
-    /* Hide Pac-Man sprites */
+    /* Hide ZPac sprites */
     for (f = 0; f < 4; f++) {
         gfx_sprite spr = { 0 };
         spr.x = 0;
@@ -522,7 +522,7 @@ static void cutscene_act3(void) {
 
     sound_intermission_start();
 
-    /* Phase 1: Pac-Man + patched Blinky run left */
+    /* Phase 1: ZPac + patched Blinky run left */
     pac_x = 660;
     ghost_x = 760;
     tick = 0;

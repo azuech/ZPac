@@ -64,7 +64,7 @@ zpac/
 ├── src/
 │   ├── main.c           # Entry point, game state machine
 │   ├── game.c/h         # Game loop, level logic
-│   ├── pacman.c/h       # Player movement, animation
+│   ├── zpac.c/h         # Player movement, animation
 │   ├── ghost.c/h        # Ghost AI, targeting, state machine
 │   ├── maze.c/h         # Maze structure, collision, dots
 │   ├── input.c/h        # Keyboard + SNES controller abstraction

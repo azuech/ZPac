@@ -18,7 +18,7 @@ static const uint8_t dot_row[NUM_256_DOTS] = { 22,  1,  3, 29, 20,  2, 15, 18 };
 /* Arcade tile codes for the corrupted right half (cols 14-27, rows 0-30).
  * These are the actual values the buggy fruit-drawing routine writes
  * to VRAM, determined by simulating the exact Z80 algorithm on the
- * original Puckman ROM data. */
+ * original arcade ROM data. */
 static const uint8_t arcade_tiles[31][14] = {
     {0x01,0x48,0x45,0x71,0x4A,0x4E,0x11,0x31,0x6B,0xA4,0xFF,0x01,0x01,0x01},
     {0x00,0x67,0x47,0x70,0x46,0x4C,0x10,0x50,0x70,0xB8,0x0F,0x0C,0x06,0x06},

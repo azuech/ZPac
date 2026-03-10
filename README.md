@@ -73,9 +73,6 @@ zpac/
 │   ├── hud.c/h          # Score, lives, fruit display
 │   ├── fruit.c/h        # Fruit bonus spawn and collision
 │   └── data.h           # Constants, lookup tables
-├── assets/
-│   ├── zpac_maze_data.h # Palette + tileset data + maps
-│   └── zpac_tileset.bin # External tileset (43KB, loaded at runtime)
 ├── CMakeLists.txt
 ├── LICENSE              # Apache 2.0
 └── README.md

@@ -112,7 +112,7 @@ This approach allows a non-embedded-systems developer to build a complete Z80 ga
 - Phase 9: Title screen, attract mode with demo AI, coin/credit system, high score
 - Phase 10: 3-act intermission cutscenes with music, Level 256 split-screen bug, arcade-speed calibration
 
-Binary ~45KB on ~48KB Z80 RAM limit; tileset ~49KB loaded externally to VRAM at startup. Game speed within 0.5% of the arcade original.
+Binary ~45KB on ~48KB Z80 RAM limit; tileset ~49KB loaded externally to VRAM at startup. Game speed currently within 0.5% of the arcade original, calibrated on the Zeal Native Emulator running on a low-spec x64 Linux PC. A hardware port to the physical Zeal 8-bit Computer is planned in the coming weeks, with timing recalibration to match the real platform.
 
 ## Acknowledgments
 

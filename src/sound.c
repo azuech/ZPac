@@ -28,8 +28,8 @@
  * Two alternating sounds on VOICE1:
  * eatdot1: starts high (0x02ED, ~496Hz), descends 0x68/frame for 5 frames
  * eatdot2: starts low  (0x00F7, ~164Hz), ascends  0x68/frame for 5 frames
- * Waveform: square 50% duty (arcade uses sawtooth wavetable, square is closer
- * on Zeal PSG for a "crunchy" eating sound). */
+ * Waveform: square 50% duty (square is closer on Zeal PSG
+ * for a "crunchy" eating sound). */
 #define WAKA_FREQ_HIGH    0x02ED
 #define WAKA_FREQ_LOW     0x00F7
 #define WAKA_STEP         0x0068
@@ -83,33 +83,33 @@ static uint16_t fruit_snd_freq;     /* current frequency */
  * Encoding: 1 byte per tick, high nibble = v0 freq index, low = v1 freq index.
  * Index 0 = silence for both voices. */
 
-/* Voice 0 frequency LUT (bass line, arcade waveform 2 = 2 cycles) */
+/* Voice 0 frequency LUT (bass line, waveform 2 = 2 cycles) */
 static const uint16_t prelude_v0_lut[8] = {
     0x0000,  /* idx 0: silence */
-    0x00C8,  /* idx 1: 135 Hz (arcade 0x002E0) */
-    0x00D3,  /* idx 2: 142 Hz (arcade 0x00308) */
-    0x012C,  /* idx 3: 202 Hz (arcade 0x00450) */
-    0x013E,  /* idx 4: 214 Hz (arcade 0x00490) */
-    0x014F,  /* idx 5: 226 Hz (arcade 0x004D0) */
-    0x0179,  /* idx 6: 253 Hz (arcade 0x00568) */
-    0x0191,  /* idx 7: 270 Hz (arcade 0x005C0) */
+    0x00C8,  /* idx 1: 135 Hz */
+    0x00D3,  /* idx 2: 142 Hz */
+    0x012C,  /* idx 3: 202 Hz */
+    0x013E,  /* idx 4: 214 Hz */
+    0x014F,  /* idx 5: 226 Hz */
+    0x0179,  /* idx 6: 253 Hz */
+    0x0191,  /* idx 7: 270 Hz */
 };
 
 /* Voice 1 frequency LUT (melody) */
 static const uint16_t prelude_v1_lut[13] = {
     0x0000,  /* idx 0: silence */
-    0x01F9,  /* idx 1: 340 Hz (arcade 0x00E80) */
-    0x0321,  /* idx 2: 539 Hz (arcade 0x01700) */
-    0x034D,  /* idx 3: 568 Hz (arcade 0x01840) */
-    0x03B5,  /* idx 4: 639 Hz (arcade 0x01B40) */
-    0x03F2,  /* idx 5: 680 Hz (arcade 0x01D00) */
-    0x042F,  /* idx 6: 721 Hz (arcade 0x01EC0) */
-    0x046C,  /* idx 7: 762 Hz (arcade 0x02080) */
-    0x04B2,  /* idx 8: 809 Hz (arcade 0x02280) */
-    0x04F8,  /* idx 9: 855 Hz (arcade 0x02480) */
-    0x053D,  /* idx 10: 902 Hz (arcade 0x02680) */
-    0x0643,  /* idx 11: 1078 Hz (arcade 0x02E00) */
-    0x06A2,  /* idx 12: 1143 Hz (arcade 0x030C0) */
+    0x01F9,  /* idx 1: 340 Hz */
+    0x0321,  /* idx 2: 539 Hz */
+    0x034D,  /* idx 3: 568 Hz */
+    0x03B5,  /* idx 4: 639 Hz */
+    0x03F2,  /* idx 5: 680 Hz */
+    0x042F,  /* idx 6: 721 Hz */
+    0x046C,  /* idx 7: 762 Hz */
+    0x04B2,  /* idx 8: 809 Hz */
+    0x04F8,  /* idx 9: 855 Hz */
+    0x053D,  /* idx 10: 902 Hz */
+    0x0643,  /* idx 11: 1078 Hz */
+    0x06A2,  /* idx 12: 1143 Hz */
 };
 
 #define PRELUDE_NUM_TICKS  245
@@ -134,13 +134,13 @@ static const uint8_t prelude_data[245] = {
     0x70,0x70,0x70,0x70,0x70,
 };
 
-/* Voice 0 volume fade mapping: arcade vol 14->0 maps to Zeal 4 levels.
+/* Voice 0 volume fade mapping: vol 14->0 maps to Zeal 4 levels.
  * Index = tick within note (0-14), value = Zeal volume register value. */
 static const uint8_t prelude_v0_vol[16] = {
-    VOL_75, VOL_75, VOL_75, VOL_75,     /* arcade vol 14-11 */
-    VOL_50, VOL_50, VOL_50, VOL_50,     /* arcade vol 10-7 */
-    VOL_25, VOL_25, VOL_25, VOL_25,     /* arcade vol 6-3 */
-    VOL_0,  VOL_0,  VOL_0,  VOL_0       /* arcade vol 2-0 + padding */
+    VOL_75, VOL_75, VOL_75, VOL_75,     /* vol 14-11 */
+    VOL_50, VOL_50, VOL_50, VOL_50,     /* vol 10-7 */
+    VOL_25, VOL_25, VOL_25, VOL_25,     /* vol 6-3 */
+    VOL_0,  VOL_0,  VOL_0,  VOL_0       /* vol 2-0 + padding */
 };
 
 /* === Peripheral bank save/restore ===
@@ -315,7 +315,7 @@ void sound_play_prelude(void) {
     snd_bank_restore();
 
     /* Play with fractional accumulator: 129/100 ticks per frame
-     * to match arcade timing (4.36s vs 5.63s, ratio ~0.775) */
+     * to match original timing (4.36s vs 5.63s, ratio ~0.775) */
     {
         uint16_t tick = 0;
         uint8_t acc = 0;
@@ -387,8 +387,8 @@ void sound_play_prelude(void) {
     snd_bank_restore();
 }
 
-/* === Death jingle — arcade-accurate ===
- * 90 ticks of register dump, converted from arcade WSG to Zeal PSG.
+/* === Death jingle ===
+ * 90 ticks of register dump, converted from WSG to Zeal PSG.
  * Tick 0-66: triangle wave, oscillating descending phrases.
  * Tick 67-77: square wave, ascending sweep ("tail").
  * Tick 78: silence.
@@ -413,7 +413,7 @@ static const uint16_t death_snd_freq[DEATH_SND_TICKS] = {
     0x0688, 0x079E, 0x08B5, 0x09CC, 0x0AE2, 0x0BF9
 };
 
-/* Volume: arcade 13-15=VOL_100, 10-12=VOL_75, 5-8=VOL_50, 0=VOL_0 */
+/* Volume: 13-15=VOL_100, 10-12=VOL_75, 5-8=VOL_50, 0=VOL_0 */
 static const uint8_t death_snd_vol[DEATH_SND_TICKS] = {
     VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_100,
     VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_100,
@@ -643,12 +643,12 @@ void sound_intermission_start(void) {
     zvb_sound_set_channels(VOICE0 | VOICE1, VOICE0 | VOICE1);
     zvb_sound_set_volume(VOL_100);
 
-    /* Voice 0: melody — square wave 50% duty (closest to arcade wave 0) */
+    /* Voice 0: melody — square wave 50% duty */
     zvb_sound_set_voices(VOICE0, 0, DUTY_CYCLE_50_0 | WAV_SQUARE);
     zvb_sound_set_voices_vol(VOICE0, VOL_100);
     zvb_sound_set_hold(VOICE0, 0);
 
-    /* Voice 1: bass — sawtooth (closest to arcade wave 1) */
+    /* Voice 1: bass — sawtooth */
     zvb_sound_set_voices(VOICE1, 0, WAV_SAWTOOTH);
     zvb_sound_set_voices_vol(VOICE1, VOL_75);
     zvb_sound_set_hold(VOICE1, 0);

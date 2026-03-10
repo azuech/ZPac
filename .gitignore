@@ -30,3 +30,6 @@ Thumbs.db
 
 # Third-party reference code (not ours to publish)
 Floooh reference/
+
+# Root-level generator scripts (kept local only)
+generate_*.py

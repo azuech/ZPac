@@ -102,7 +102,17 @@ This approach allows a non-embedded-systems developer to build a complete Z80 ga
 
 ## Current Status
 
-**Phase 8 complete** — core gameplay loop with ghost AI, audio, lives, fruit, Cruise Elroy, and scatter/chase timing are all implemented. Phase 9 (title screen and attract mode) is next.
+**Phase 10 complete** — all planned development phases are finished:
+
+- Phases 1–2: Maze rendering, sprites, font, palette (Mode 6, 329+ tiles, 2×2 composite sprites)
+- Phase 3: Interactive gameplay at 60fps (tile+sub movement, dot eating, tunnel)
+- Phases 4–6: Complete ghost AI with scatter/chase, frightened mode, eyes, ghost house, level completion
+- Phase 7: Full PSG audio (siren, waka-waka, fright siren, ghost eaten, death jingle)
+- Phase 8: Polish — lives, death animation, fruit bonus, Cruise Elroy, per-level timing tables
+- Phase 9: Title screen, attract mode with demo AI, coin/credit system, high score
+- Phase 10: 3-act intermission cutscenes with music, Level 256 split-screen bug, arcade-speed calibration
+
+Binary size: 47,014 bytes (~48KB limit). Game speed within 0.5% of the arcade original.
 
 ## Acknowledgments
 

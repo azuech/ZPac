@@ -11,5 +11,5 @@ to the emulator (or real hardware) as `H:/zpac_tileset.bin`.
 When running with the Zeal Native Emulator, use the `-H` flag pointing to
 this directory (or copy the file to wherever your `-H` path points).
 
-This file was generated offline from ROM data through the asset pipeline
+This file was generated offline from different game description sources through the asset pipeline
 (decode → scale 1.5× → slice → deduplicate → encode 4bpp).

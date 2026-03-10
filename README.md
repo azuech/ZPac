@@ -92,12 +92,12 @@ zpac/
 
 ## Development Methodology
 
-This project uses an AI-orchestrated development workflow:
+ZPac is built using an AI-orchestrated development model where a human architect drives the project and an AI handles the technical implementation:
 
-1. **Claude** (Anthropic) prepares detailed implementation prompts
-2. **Claude Code** executes the implementation
-3. The **project manager** validates each step on the Zeal emulator
-4. Results feed back into the next iteration
+- The **project architect** defines the development strategy phase by phase, sets design constraints, makes architectural decisions, identifies when an approach isn't working, and validates every result on the emulator. Key decisions — from choosing Mode 6 over Mode 5, to the external tileset strategy, to prioritizing the authentic 32-bit speed accumulator over simplified alternatives — stem from his ability to ask the right questions and recognize when a hardware constraint demands a design rethink.
+- The **AI** serves as the technical driver: analyzing hardware documentation, proposing implementation options with trade-offs, writing C/Z80 code, and debugging. Claude prepares self-contained prompts that are executed via **Claude Code** in the Linux development environment.
+
+The workflow cycles between strategic discussion (where to go next, which trade-offs to accept), implementation (Claude Code writing and compiling), and validation (emulator testing with visual and audio feedback). Neither could complete the project alone: the human holds the big picture and makes the calls; the AI handles the complexity of Z80 code and niche hardware APIs.
 
 This approach allows a non-embedded-systems developer to build a complete Z80 game through structured AI collaboration.
 

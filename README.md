@@ -52,10 +52,10 @@ The output binary is `build/zpac_test.bin`.
 With the Zeal Native Emulator:
 
 ```bash
-zeal-native -u build/zpac_test.bin -H /path/to/zpac_assets/
+zeal-native -u build/zpac_test.bin -H data/
 ```
 
-The `-u` flag loads the binary directly, `-H` mounts the HostFS directory containing `zpac_tileset.bin`.
+The `-u` flag loads the binary directly. The `-H` flag mounts the `data/` directory as drive `H:` — this is where the game looks for `zpac_tileset.bin` at startup. The tileset must be accessible as `H:/zpac_tileset.bin` for the game to run.
 
 ## Project Structure
 
@@ -63,25 +63,29 @@ The `-u` flag loads the binary directly, `-H` mounts the HostFS directory contai
 zpac/
 ├── src/
 │   ├── main.c           # Entry point, game state machine
-│   ├── game.c/h         # Game loop, level logic
-│   ├── zpac.c/h         # Player movement, animation
+│   ├── game_loop.c/h    # Game loop, level logic
 │   ├── ghost.c/h        # Ghost AI, targeting, state machine
-│   ├── maze.c/h         # Maze structure, collision, dots
+│   ├── maze_logic.c/h   # Maze structure, collision map, dots
+│   ├── dots.c/h         # Dot eating, deferred tile replacement
 │   ├── input.c/h        # Keyboard + SNES controller abstraction
-│   ├── render.c/h       # Tilemap, sprite rendering
 │   ├── sound.c/h        # PSG audio effects
-│   ├── hud.c/h          # Score, lives, fruit display
 │   ├── fruit.c/h        # Fruit bonus spawn and collision
-│   └── data.h           # Constants, lookup tables
+│   ├── cutscene.c/h     # Intermission cutscenes (3 acts)
+│   ├── level256.c/h     # Level 256 split-screen bug simulation
+│   ├── zpac_types.h     # Shared structs, enums, speed tables
+│   └── zpac_maze_data.h # Palette, tile maps, sprite defines
+├── data/
+│   └── zpac_tileset.bin # Pre-built tileset (~49KB, required at runtime)
 ├── CMakeLists.txt
 ├── LICENSE              # Apache 2.0
+├── CREDITS.md           # References and acknowledgments
 └── README.md
 ```
 
 ## Architecture Notes
 
 - **Mode 6** is used for the tile budget: the game needs 329+ unique tiles, exceeding Mode 5's 256-tile limit
-- **Tileset streaming**: the 43KB tileset is stored externally and streamed to VRAM at startup via HostFS (`H:/zpac_tileset.bin`), keeping the binary small
+- **Tileset streaming**: the ~49KB tileset (in `data/`) is streamed to VRAM at startup via HostFS (`H:/zpac_tileset.bin`), keeping the binary small
 - **Bresenham accumulator** drives sub-tile movement to eliminate frame-skip jitter
 - **Deferred tile replacement** uses a 4-frame delay to hide dot-eating transitions under the player sprite
 - **Ghost AI** follows the classic per-ghost targeting rules with scatter/chase mode transitions

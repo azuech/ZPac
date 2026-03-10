@@ -84,7 +84,7 @@ zpac/
 
 ## Architecture Notes
 
-- **Mode 6** is used for the tile budget: the game needs 329+ unique tiles, exceeding Mode 5's 256-tile limit
+- **Mode 6** is used for the tile budget: the game needs 384+ unique tiles, exceeding Mode 5's 256-tile limit
 - **Tileset streaming**: the ~49KB tileset (in `data/`) is streamed to VRAM at startup via HostFS (`H:/zpac_tileset.bin`), keeping the binary small
 - **Bresenham accumulator** drives sub-tile movement to eliminate frame-skip jitter
 - **Deferred tile replacement** uses a 4-frame delay to hide dot-eating transitions under the player sprite

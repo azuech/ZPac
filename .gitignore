@@ -1,0 +1,32 @@
+# Build artifacts
+build/
+*.bin
+*.o
+*.rel
+*.lst
+*.sym
+*.map
+*.noi
+*.lk
+*.mem
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS/system
+.DS_Store
+Thumbs.db
+
+# Temporary test hacks
+*.bak
+*.orig
+
+# Claude Code local config
+.claude/
+
+# Third-party reference code (not ours to publish)
+Floooh reference/

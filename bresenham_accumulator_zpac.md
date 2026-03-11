@@ -141,4 +141,4 @@ The Bresenham accumulator eliminates this by distributing the fractional steps p
 | Z80 advantage | Three instructions (add, shift, AND) vs. expensive software division |
 | Calibration | Within 0.5% of original arcade timing |
 
-The Bresenham accumulator is one of those rare algorithmic ideas that remains optimal across six decades of hardware generations — from IBM plotters in 1962, to arcade hardware in 1980, to Z80 homebrew computers in 2024.
+The Bresenham accumulator is one of those rare algorithmic ideas that remains optimal across six decades of hardware generations — from IBM plotters in 1962, to arcade hardware in 1980, to Z80 homebrew computers in 2026.

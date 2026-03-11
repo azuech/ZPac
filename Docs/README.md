@@ -995,14 +995,14 @@ Reference materials are used to *understand* the target behavior — not as code
 | — | 22/02 | Mode 5 analysis | Discovery: 329 tiles > 256 Mode 5 limit → Mode 6 decision |
 | 1 | 21/02 | Asset download | Pipeline plan, graphic and audio source URLs |
 | 2 | 21/02 | Asset cleanup | JPEG artifact cleanup, Color ROM palette reconstructed |
-| 3 | 22/02 | Sprite extraction | 66 16×16 sprites extracted from ROM |
-| 4 | 22/02 | Maze + font extraction | 79 maze tiles + 40 font chars decoded |
+| 3 | 22/02 | Sprite definition | 66 16×16 sprites extracted from ROM |
+| 4 | 22/02 | Maze + font definition | 79 maze tiles + 40 font chars decoded |
 | 5 | 22/02 | PNG → ZVB converter | `zpac_gfx.h` generated with full pipeline |
 | 6 | 22/02 | Documentation | zpac_gfxsrc_reference.md created |
 | 7 | 22/02 | Maze test + debug | First maze render on emulator (artifacts) |
 | 8 | 22/02 | Wall alignment | Root cause: wireframe vs solid tile — need ROM tiles |
-| 9 | 22/02 | ROM decode search | Analysis of ASCII maze encoding in pacman.c |
-| 10 | 22/02 | ROM extraction | Maze ROM decoded, 85 solid tiles |
+| 9 | 22/02 | Referral doc search | Analysis of ASCII maze encoding |
+| 10 | 22/02 | Referral doc analisys | Maze decoded, 85 solid tiles |
 | **11** | **22/02** | **Phase 1 complete** | **✅ 1.5× maze on emulator, Mode 6 confirmed** |
 | 12 | 22/02 | Sprite strategy | 2×2 composite decision (Option F) |
 | 13 | 23/02 | Tile budget analysis | 438/512 estimated → 329/512 after dedup |

@@ -76,6 +76,10 @@ zpac/
 │   └── zpac_maze_data.h # Palette, tile maps, sprite defines
 ├── data/
 │   └── zpac_tileset.bin # Pre-built tileset (~49KB, required at runtime)
+├── Docs/
+│   |── Bresenham_acc.md # Description of the Bresenham Accumulator used for the gameflow
+│   |── Credits.md       # External sources used for the project
+|   └── Project_devlog.md# Project Development log
 ├── CMakeLists.txt
 ├── LICENSE              # Apache 2.0
 ├── CREDITS.md           # References and acknowledgments

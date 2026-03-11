@@ -73,8 +73,8 @@ The original arcade game ran characters at fractional speeds relative to a base 
 
 | Condition | Speed (approx.) |
 |---|---|
-| Pac-Man, normal | 80% of base |
-| Pac-Man, frightened | ~90% of base |
+| ZPac, normal | 80% of base |
+| ZPac, frightened | ~90% of base |
 | Ghosts, normal | 75% of base |
 | Ghosts, frightened | 50% of base |
 | Ghosts, eyes (returning) | 150% of base |

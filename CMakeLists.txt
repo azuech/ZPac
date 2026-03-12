@@ -5,9 +5,9 @@ include($ENV{ZOS_PATH}/cmake/zos_init.cmake)
 
 zos_use(zvb)
 
-project(zpac_test C)
+project(zpac C)
 
-add_executable(zpac_test
+add_executable(zpac
     src/main.c
     src/maze_logic.c
     src/input.c
@@ -20,9 +20,9 @@ add_executable(zpac_test
     src/cutscene.c
 )
 
-target_include_directories(zpac_test PRIVATE src)
+target_include_directories(zpac PRIVATE src)
 
 find_package(ZVB_SDK REQUIRED)
-target_link_libraries(zpac_test PUBLIC zvb_gfx zvb_sound)
+target_link_libraries(zpac PUBLIC zvb_gfx zvb_sound)
 
-zos_add_outputs(zpac_test)
+zos_add_outputs(zpac)

@@ -1,5 +1,5 @@
 /* zpac_maze_data.h — Complete game data (external tileset) */
-/* Tileset loaded from H:/zpac_tileset.bin at runtime */
+/* Tileset loaded from H:/zpac_tiles.bin at runtime */
 /* Auto-generated — ALL assets including score sprites */
 
 #ifndef ZPAC_DATA_H

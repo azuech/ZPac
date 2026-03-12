@@ -1,6 +1,6 @@
 /**
  * ZPac Phase 2 Test - Mode 6 (640x480, 4bpp)
- * Tileset loaded from external file "H:/zpac_tileset.bin" via hostfs.
+ * Tileset loaded from "zpac_tiles.bin" (local) or "H:/zpac_tiles.bin" (hostfs).
  * Binary ~7KB, tileset streamed to VRAM in 512-byte chunks.
  * ~40KB free for gameplay code.
  */
@@ -70,6 +70,17 @@ static void tile_remove_dots(uint8_t *data) {
  */
 #define CHUNK_SIZE 512
 #define TILE_BYTES 128
+
+static const char tileset_path_local[] = "zpac_tiles.bin";
+static const char tileset_path_hostfs[] = "H:/zpac_tiles.bin";
+
+static zos_dev_t open_tileset(void) {
+    zos_dev_t fd;
+    fd = open(tileset_path_local, O_RDONLY);
+    if (fd >= 0) return fd;
+    return open(tileset_path_hostfs, O_RDONLY);
+}
+
 static uint8_t load_tileset_from_file(void) {
     uint8_t buf[CHUNK_SIZE];
     zos_dev_t fd;
@@ -79,7 +90,7 @@ static uint8_t load_tileset_from_file(void) {
     uint16_t next_free;
 
     /* --- Pass 1: load entire tileset to VRAM --- */
-    fd = open("H:/zpac_tileset.bin", O_RDONLY);
+    fd = open_tileset();
     if (fd < 0) return 1;
 
     opts.compression = TILESET_COMP_NONE;
@@ -103,7 +114,7 @@ static uint8_t load_tileset_from_file(void) {
     if (offset < TILESET_SIZE) return 2;
 
     /* --- Pass 2: generate no-dot tile variants for maze tiles 0-176 --- */
-    fd = open("H:/zpac_tileset.bin", O_RDONLY);
+    fd = open_tileset();
     if (fd < 0) return 3;
 
     next_free = TOTAL_TILES;  /* 341 */
@@ -231,7 +242,7 @@ int main(void) {
     clean_tilemap();
     gfx_palette_load(&vctx, (void*)zpac_palette, 512, 0);
 
-    /* Stream tileset from file H:/zpac_tileset.bin into VRAM */
+    /* Stream tileset from zpac_tiles.bin (local or H:/) into VRAM */
     uint8_t load_err = load_tileset_from_file();
     if (load_err) {
         /* Show error on screen for debugging */

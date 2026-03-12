@@ -51,12 +51,6 @@ fruit-drawing routine overflow. Used as the primary reference for
 ZPac's level 256 corruption simulation, including the exact tile and
 color values written to video memory by the original Z80 code.
 
-### Original Arcade ROM Disassembly
-
-Community-maintained Z80 disassembly of the original arcade ROM.
-Used for verifying specific
-implementation details such as audio register dump sequences, eating
-pause durations, and ghost house dot counter thresholds.
 
 ### MAME (Multi-Arcade Machine Emulator)
 

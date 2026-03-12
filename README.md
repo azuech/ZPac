@@ -59,8 +59,8 @@ The `-u` flag loads the binary directly. The `-H` flag mounts the `data/` direct
 
 With the real hardware:
 
-zpac.bin.
-The file zpac_tiles.bin (present in the folder data on this repo) must be present on the same path of the executable.
+`zpac.bin`
+The file `zpac_tiles.bin` (present in the folder `data` on this repo) must be present on the same path of the executable.
 
 ## Project Structure
 

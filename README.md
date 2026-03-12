@@ -45,17 +45,22 @@ cmake ..
 make
 ```
 
-The output binary is `build/zpac_test.bin`.
+The output binary is `build/zpac.bin`.
 
 ## Running
 
 With the Zeal Native Emulator:
 
 ```bash
-zeal-native -u build/zpac_test.bin -H data/
+zeal-native -u build/zpac.bin -H data/
 ```
 
 The `-u` flag loads the binary directly. The `-H` flag mounts the `data/` directory as drive `H:` — this is where the game looks for `zpac_tileset.bin` at startup. The tileset must be accessible as `H:/zpac_tileset.bin` for the game to run.
+
+With the real hardware:
+
+zpac.bin.
+The file zpac_tiles.bin (present in the folder data on this repo) must be present on the same path of the executable.
 
 ## Project Structure
 

@@ -65,7 +65,7 @@ L'Architetto ha conseguentemente guidato una massiccia refattorizzazione per mig
 
 Il feedback su questa decisione strategica è di totale encomio. Abbandonare la profondità di colore a 8 bit (totalmente superflua per un gioco arcade del 1980 che vanta sprite con massimo 2 o 3 toni) in favore dello spazio di immagazzinamento a 4 bit del Mode 6 dimostra un "design thinking" brillante, plasmato attorno alla realtà dell'hardware FPGA.
 
-### **Renderizzazione Dinamica degli Sprite Compositi e del Loop Grafico**
+### **Renderizzazione dinamica degli sprite compositi e del loop grafico**
 
 Nel contesto della gestione visiva implementata in main.c e game\_loop.c, si osserva come l'intero layout venga gestito tramite layer hardware. La funzione gfx\_initialize viene chiamata con la macro SDK ZVB\_CTRL\_VID\_MODE\_GFX\_640\_4BIT.1 L'infrastruttura di Zeal prevede una distinzione tra sfondi statici (tilemaps) ed entità in movimento libero (hardware sprites).
 
@@ -75,11 +75,11 @@ Come si evince dall'analisi di game\_loop.c, la routine update\_zpac\_sprites() 
 
 La complessità sorge nell'animazione direzionale. La macchina a stati dell'animazione utilizza un ciclo fluido in 4 fasi (Wide → Medium → Closed → Medium), mappato da un array anim\_phase\_map basato sui tick del game loop (zpac.anim\_tick).1 Invece di conservare in memoria i tile pre-ruotati per le direzioni Sinistra e Su, il motore legge la variabile di stato zpac.dir\_current. Se la direzione richiesta è DIR\_LEFT, il software utilizza il set di tile di base (destra) e invia l'attributo SPRITE\_FLIP\_X alla scheda video.1 Questa operazione di specchiatura di uno sprite composito impone la necessità di riordinare matematicamente l'indice dei quattro quadranti hardware per evitare che la porzione frontale del personaggio finisca sul lato sbagliato dello schermo, un calcolo gestito in tempo reale dalle routine in game\_loop.c.1
 
-## **Architettura della Memoria e Streaming I/O** 
+## **Architettura della memoria e streaming I/O** 
 
 Come introdotto in precedenza, l'ingombro logico di 48 KB visibili allo Z80 pone un grave rischio per la fattibilità dell'eseguibile, che deve includere logica di gioco, librerie SDK, stack e asset. Il file main.c documenta l'implementazione di una pipeline di caricamento avanzata e asincrona che risolve radicalmente questo problema di "Out of Memory".1
 
-### **Streaming in Chunk dei Dati Binari**
+### **Streaming in chunk dei dati binari**
 
 La pipeline grafica di ZPac genera un file di asset binari (zpac\_tiles.bin) la cui dimensione si attesta sui 49 KB.1 Includere staticamente questo array nel codice sorgente C causerebbe il fallimento immediato in fase di linking, in quanto supererebbe lo spazio di RAM allocabile da ZealOS.
 
@@ -87,7 +87,7 @@ La funzione load\_tileset\_from\_file() in main.c introduce un paradigma di I/O 
 
 La lettura avviene in "Pass 1": il file viene assorbito in blocchi di 512 byte (chunking). Ogni chunk, appena allocato in un buffer temporaneo in RAM, viene immediatamente trasmesso alla Video RAM della ZVB tramite la funzione SDK gfx\_tileset\_load e il buffer viene sovrascritto dal chunk successivo.1 In questo modo, l'ingombro di picco in memoria centrale causato dagli asset grafici è di soli 512 byte, trasferendo l'intero onere di stoccaggio dei 49 KB sulla RAM dedicata della scheda video FPGA.1 Questo trucco ingegneristico mantiene il binario compilato al sicuro, con una dimensione agile di circa \~45 KB.1
 
-### **Generazione Procedurale in VRAM e Sostituzione "No-Dot" Differita**
+### **Generazione procedurale in VRAM e sostituzione "No-Dot" differita**
 
 Nel videogioco arcade, il giocatore percorre il labirinto consumando piccole "pillole" (dot). Su hardware a bassa potenza, la logica di rasterizzazione pone un dilemma prestazionale severo. Un tile in Mode 6 è composto da 128 byte, ciascuno contenente due pixel a 4 bit (nibble). Modificare l'aspetto di un singolo tile a runtime per "cancellare" una pillola imporrebbe alla CPU Z80 di leggere i 128 byte del tile dalla VRAM, eseguire mascherature bit a bit per azzerare i nibble corrispondenti al colore della pillola e riscrivere i byte in VRAM.1 L'invocazione di cicli di lettura/scrittura così intensi sul bus I/O della video board durante il game loop violerebbe sistematicamente la finestra di timing dei 60 FPS.
 

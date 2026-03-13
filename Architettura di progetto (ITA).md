@@ -210,7 +210,7 @@ L'ingegnosità matematica e gestionale si palesa tangibilmente nella pre-renderi
 
 #### **Bibliografia**
 
-1. READMEv2.md  
+1. DOCS\README.md  
 2. Transforming software development: The Vibe Coding approach every CIO needs to know, accesso eseguito il giorno marzo 13, 2026, [https://our-thinking.nashtechglobal.com/insights/transforming-software-development-the-vibe-coding-approach-every-cio-needs-to-know](https://our-thinking.nashtechglobal.com/insights/transforming-software-development-the-vibe-coding-approach-every-cio-needs-to-know)  
 3. How I Built a Multi-Agent AI System That Changed My Development Workflow Forever | by Vedantparmarsingh | Medium, accesso eseguito il giorno marzo 13, 2026, [https://medium.com/@vedantparmarsingh/how-i-built-a-multi-agent-ai-system-that-changed-my-development-workflow-forever-2fede7780d0f](https://medium.com/@vedantparmarsingh/how-i-built-a-multi-agent-ai-system-that-changed-my-development-workflow-forever-2fede7780d0f)  
 4. Zeal Documentation \- Specifications \- Zeal 8-bit Computer, accesso eseguito il giorno marzo 13, 2026, [https://zeal8bit.com/docs/specifications/](https://zeal8bit.com/docs/specifications/)  

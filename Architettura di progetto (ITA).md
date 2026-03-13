@@ -1,4 +1,4 @@
-# **Architettura del Progetto ZPac:**  
+# **Architettura del progetto ZPac:**  
 **Ingegneria Retro-Computing e sviluppo AI-Orchestrated**
 
 L'ingegneria del software su architetture retro-computing richiede un bilanciamento tra l'ottimizzazione delle risorse e la fedeltà comportamentale. Il progetto ZPac emerge come un'implementazione "white-room" di un iconico videogioco arcade degli anni '80, progettato specificamente per lo Zeal 8-bit Computer, un ecosistema hardware homebrew basato sul processore Zilog Z80. L'obiettivo fondamentale dell'opera non è una mera transcodifica (porting) del codice ROM originale, bensì una completa riscrittura basata sull'osservazione comportamentale e sulla documentazione pubblica. Questo approccio garantisce che ogni struttura dati, algoritmo di intelligenza artificiale e routine di rendering sia nativamente concepita per sfruttare e rispettare i vincoli della piattaforma di destinazione.

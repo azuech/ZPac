@@ -5,7 +5,7 @@ L'ingegneria del software su architetture retro-computing richiede un bilanciame
 
 Oltre alla valenza tecnica, il progetto si propone come un esperimento formale di un ecosistema di sviluppo all'avanguardia definito "AI-Orchestrated Development". L'intento è dimostrare la fattibilità della creazione di un software embedded complesso per una piattaforma di nicchia da parte di figure professionali prive di un background ultra-specialistico in Assembly Z80, delegando l'implementazione tecnica a un'intelligenza artificiale, a valle di una solida orchestrazione architetturale umana. L'esame del codice sorgente fornito e della documentazione architetturale rivela un prodotto di straordinaria maturità tecnica, in cui le limitazioni hardware vengono eluse attraverso pattern di programmazione avanzati e un uso enciclopedico delle specificità dello Zeal 8-bit OS e della Zeal Video Board (ZVB).
 
-## **Sviluppo AI-Orchestrated: un'analisi metodologica**
+## **Sviluppo AI-Orchestrated: analisi metodologica**
 
 L'industria dello sviluppo software sta assistendo a una transizione paradigmatica dall'uso dell'intelligenza artificiale come semplice strumento di autocompletamento (spesso associato al concetto informale di "vibe coding") verso veri e propri flussi di lavoro di "AI-Orchestrated Development". In quest'ultimo modello, l'AI gestisce l'implementazione del codice sotto una rigorosa supervisione umana, un approccio essenziale per mantenere la qualità, la sicurezza e la scalabilità del software. Il progetto ZPac codifica magistralmente questo flusso di lavoro simbiotico tra l'Architetto umano (il creatore del progetto, identificato come Azuech) e il Technical Driver basato su Intelligenza Artificiale (nello specifico, Claude di Anthropic).
 

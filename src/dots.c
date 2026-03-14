@@ -135,7 +135,7 @@ void dots_update(void) {
 }
 
 /* Powers of 10 for digit extraction via subtraction (avoids expensive 32-bit division) */
-static const uint32_t pow10[7] = {
+const uint32_t pow10[7] = {
     1000000UL, 100000UL, 10000UL, 1000UL, 100UL, 10UL, 1UL
 };
 

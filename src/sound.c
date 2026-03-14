@@ -413,37 +413,14 @@ static const uint16_t death_snd_freq[DEATH_SND_TICKS] = {
     0x0688, 0x079E, 0x08B5, 0x09CC, 0x0AE2, 0x0BF9
 };
 
-/* Volume: 13-15=VOL_100, 10-12=VOL_75, 5-8=VOL_50, 0=VOL_0 */
-static const uint8_t death_snd_vol[DEATH_SND_TICKS] = {
-    VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_100,
-    VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_100,
-    VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_100,
-    VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_100,
-    VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_100,
-    VOL_100, VOL_100, VOL_100, VOL_100, VOL_100, VOL_75,
-    VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,
-    VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,
-    VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,
-    VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,
-    VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,  VOL_75,
-    VOL_75,  VOL_50,  VOL_50,  VOL_50,  VOL_50,  VOL_50,
-    VOL_50,  VOL_50,  VOL_50,  VOL_50,  VOL_50,  VOL_50,
-    VOL_0,   VOL_50,  VOL_50,  VOL_50,  VOL_50,  VOL_50,
-    VOL_50,  VOL_50,  VOL_50,  VOL_50,  VOL_50,  VOL_0
-};
-
-/* Waveform: 1=triangle (tick 0-66), 0=square (tick 67-89) */
-static const uint8_t death_snd_wave[DEATH_SND_TICKS] = {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0
-};
+/* Death volume: procedural (replaces 90-byte table).
+ * Pattern: 0-34=VOL_100, 35-66=VOL_75, 67-89=VOL_50 except 78,89=VOL_0 */
+static uint8_t death_get_vol(uint8_t t) {
+    if (t < 35) return VOL_100;
+    if (t < 67) return VOL_75;
+    if (t == 78 || t == 89) return VOL_0;
+    return VOL_50;
+}
 
 /* Intermission music — RLE compressed.
  * Format: {freq_hi, freq_lo, duration} triplets.
@@ -575,7 +552,7 @@ void sound_death_update(uint8_t unused) {
     }
 
     freq = death_snd_freq[death_snd_tick];
-    vol = death_snd_vol[death_snd_tick];
+    vol = death_get_vol(death_snd_tick);
 
     snd_bank_save();
     zvb_map_peripheral(ZVB_PERI_SOUND_IDX);

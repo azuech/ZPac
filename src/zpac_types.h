@@ -43,15 +43,16 @@
 /* ---- Fixed-point 8.8 speeds (256 = 1.0 pixel/frame) ----
  * Base "100% speed" = 307 (1.2 px/frame at 75fps, compensating for 1.5× tile scale).
  * Multiples of 256 = zero jitter. Halves = perfect alternation. */
-#define SPD_PAC_NORMAL_L1    346   /* ~1.35 px/frame at 75fps */
-#define SPD_PAC_FRIGHT_L1    404   /* ~1.58 px/frame */
-#define SPD_PAC_DOT_L1       289   /* ~1.13 px/frame */
-#define SPD_GHOST_NORMAL_L1  318   /* ~1.24 px/frame */
-#define SPD_GHOST_FRIGHT_L1  173   /* ~0.68 px/frame */
-#define SPD_GHOST_TUNNEL_L1  115   /* ~0.45 px/frame */
+#define SPD_PAC_NORMAL_L1    346   /* 80% of 433 = 1.35 px/frame at 75fps */
+#define SPD_PAC_FRIGHT_L1    390   /* 90% of 433 = 1.52 px/frame */
+#define SPD_PAC_DOT_L1       307   /* 71% of 433 = 1.20 px/frame */
+#define SPD_GHOST_NORMAL_L1  325   /* 75% of 433 = 1.27 px/frame */
+#define SPD_GHOST_FRIGHT_L1  217   /* 50% of 433 = 0.85 px/frame */
+#define SPD_GHOST_TUNNEL_L1  173   /* 40% of 433 = 0.68 px/frame */
 #define SPD_GHOST_EYES_L1    476   /* ~1.86 px/frame */
 
-#define FRIGHT_FLASH_FRAMES  75    /* ~1 sec at 75fps */
+/* Get fright flash warning duration for current level (frames at 75fps) */
+uint16_t get_fright_flash_frames(void);
 #define GHOST_EATEN_FREEZE   75    /* ~1 sec freeze at 75fps */
 
 /* Movement delta per direction: dx[dir], dy[dir] */

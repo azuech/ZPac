@@ -41,12 +41,15 @@ static const uint8_t start_state[NUM_GHOSTS] = {
     GHOST_STATE_HOUSE     /* Clyde starts in house */
 };
 
-/* Dot limits per ghost (Level 1) */
-static const uint8_t start_dot_limit[NUM_GHOSTS] = {
-    0,                    /* Blinky: N/A (never in house at start) */
-    DOT_LIMIT_PINKY_L1,  /* Pinky: 0 (leaves immediately) */
-    DOT_LIMIT_INKY_L1,   /* Inky: 30 */
-    DOT_LIMIT_CLYDE_L1   /* Clyde: 60 */
+/* Dot limits per ghost, per level group (Pac-Man Dossier).
+ * [level_group][ghost_index]: Blinky always 0 (never in house).
+ * L1: Pinky=0, Inky=30, Clyde=60
+ * L2: Pinky=0, Inky=0,  Clyde=50
+ * L3+: Pinky=0, Inky=0, Clyde=0 (all leave immediately) */
+static const uint8_t dot_limit_table[3][NUM_GHOSTS] = {
+    { 0, 0, 30, 60 },   /* [0] L1 */
+    { 0, 0,  0, 50 },   /* [1] L2 */
+    { 0, 0,  0,  0 },   /* [2] L3+ */
 };
 
 /* Target positions inside ghost house for ENTERHOUSE state.
@@ -113,8 +116,9 @@ uint8_t  num_ghosts_eaten;
 uint8_t  ghost_eaten_freeze;
 uint8_t  elroy_mode = 0;
 
-/* Elroy parameters per speed tier (matching speed_tiers in game_loop.c).
- * Tier 0=L1, 1=L2-4, 2=L5-20, 3=L21+ */
+/* Elroy parameters per level group (Table A.1 from Pac-Man Dossier).
+ * 9 distinct combinations of dot thresholds and speeds.
+ * Speeds: 80%=346, 85%=368, 90%=390, 95%=411, 100%=433, 105%=455. */
 typedef struct {
     uint8_t  dots_elroy1;   /* dot_count threshold for Elroy 1 */
     uint8_t  dots_elroy2;   /* dot_count threshold for Elroy 2 */
@@ -122,11 +126,16 @@ typedef struct {
     uint16_t speed_elroy2;  /* fixed-point 8.8 speed for Elroy 2 */
 } elroy_params_t;
 
-static const elroy_params_t elroy_tiers[4] = {
-    { 20, 10, 346, 368 },   /* Tier 0: L1 */
-    { 30, 15, 390, 411 },   /* Tier 1: L2-4 */
-    { 40, 20, 433, 454 },   /* Tier 2: L5-20 */
-    { 60, 30, 390, 411 }    /* Tier 3: L21+ */
+static const elroy_params_t elroy_table[9] = {
+    {  20,  10, 346, 368 },  /* [0] L1:     E1=80%  E2=85%  */
+    {  30,  15, 390, 411 },  /* [1] L2:     E1=90%  E2=95%  */
+    {  40,  20, 390, 411 },  /* [2] L3-4:   E1=90%  E2=95%  */
+    {  40,  20, 433, 455 },  /* [3] L5:     E1=100% E2=105% */
+    {  50,  25, 433, 455 },  /* [4] L6-8:   E1=100% E2=105% */
+    {  60,  30, 433, 455 },  /* [5] L9-11:  E1=100% E2=105% */
+    {  80,  40, 433, 455 },  /* [6] L12-14: E1=100% E2=105% */
+    { 100,  50, 433, 455 },  /* [7] L15-18: E1=100% E2=105% */
+    { 120,  60, 433, 455 },  /* [8] L19+:   E1=100% E2=105% */
 };
 
 static const elroy_params_t *cur_elroy;
@@ -152,7 +161,13 @@ void ghosts_init(void) {
         ghosts[i].anim_tick = 0;
         ghosts[i].reversal_pending = 0;
         ghosts[i].dot_counter = 0;
-        ghosts[i].dot_limit = start_dot_limit[i];
+        {
+            uint8_t dl_idx;
+            if (game_level == 0)      dl_idx = 0;
+            else if (game_level == 1) dl_idx = 1;
+            else                      dl_idx = 2;
+            ghosts[i].dot_limit = dot_limit_table[dl_idx][i];
+        }
         ghosts[i].just_eaten = 0;
         ghosts[i].eaten_seq = 0;
     }
@@ -188,14 +203,19 @@ void ghosts_init(void) {
 
     elroy_mode = 0;
 
-    /* Set Elroy parameters for current level tier */
+    /* Set Elroy parameters for current level (Table A.1) */
     {
-        uint8_t tier;
-        if (game_level == 0)       tier = 0;
-        else if (game_level <= 3)  tier = 1;
-        else if (game_level <= 19) tier = 2;
-        else                       tier = 3;
-        cur_elroy = &elroy_tiers[tier];
+        uint8_t idx;
+        if (game_level == 0)        idx = 0;  /* L1 */
+        else if (game_level == 1)   idx = 1;  /* L2 */
+        else if (game_level <= 3)   idx = 2;  /* L3-4 */
+        else if (game_level == 4)   idx = 3;  /* L5 */
+        else if (game_level <= 7)   idx = 4;  /* L6-8 */
+        else if (game_level <= 10)  idx = 5;  /* L9-11 */
+        else if (game_level <= 13)  idx = 6;  /* L12-14 */
+        else if (game_level <= 17)  idx = 7;  /* L15-18 */
+        else                        idx = 8;  /* L19+ */
+        cur_elroy = &elroy_table[idx];
     }
 }
 
@@ -1039,9 +1059,9 @@ void ghosts_render(void) {
             };
             tiles = fright_tiles[frame];
 
-            /* Flash: alternate blue/white in the last FRIGHT_FLASH_FRAMES */
-            if (fright_timer <= FRIGHT_FLASH_FRAMES && fright_timer > 0) {
-                pal = ((fright_timer >> 2) & 1) ? PAL_FRIGHTENED : PAL_FRIGHT_BLINK;
+            /* Flash: alternate blue/white in the last N frames (per-level, Table A.1) */
+            if (fright_timer <= get_fright_flash_frames() && fright_timer > 0) {
+                pal = ((fright_timer >> 3) & 1) ? PAL_FRIGHTENED : PAL_FRIGHT_BLINK;
             } else {
                 pal = PAL_FRIGHTENED;
             }

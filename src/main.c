@@ -150,30 +150,6 @@ static uint8_t load_tileset_from_file(void) {
     return 0;
 }
 
-static void set_sprite_2x2(uint8_t base_idx,
-                            uint16_t tile_tl, uint16_t tile_tr,
-                            uint16_t tile_bl, uint16_t tile_br,
-                            uint8_t pal_group,
-                            uint16_t px, uint16_t py)
-{
-    uint16_t tiles[4];
-    uint16_t dx[4];
-    uint16_t dy[4];
-    uint8_t i;
-    tiles[0]=tile_tl; tiles[1]=tile_tr; tiles[2]=tile_bl; tiles[3]=tile_br;
-    dx[0]=0; dx[1]=16; dx[2]=0; dx[3]=16;
-    dy[0]=0; dy[1]=0; dy[2]=16; dy[3]=16;
-    for (i = 0; i < 4; i++) {
-        gfx_sprite spr = { 0 };
-        spr.x = px + dx[i];
-        spr.y = py + dy[i];
-        spr.tile = tiles[i] & 0xFF;
-        spr.flags = SPRITE_PALETTE(pal_group);
-        if (tiles[i] >= 256) spr.flags |= SPRITE_TILE_BIT9;
-        gfx_sprite_render(&vctx, base_idx + i, &spr);
-    }
-}
-
 void clean_tilemap(void) {
     uint8_t blank_l0[SCREEN_COLS];
     uint8_t blank_l1[SCREEN_COLS];
@@ -183,24 +159,6 @@ void clean_tilemap(void) {
     for (y = 0; y < SCREEN_ROWS; y++) {
         gfx_tilemap_load(&vctx, blank_l0, SCREEN_COLS, 0, 0, y);
         gfx_tilemap_load(&vctx, blank_l1, SCREEN_COLS, 1, 0, y);
-    }
-}
-
-static void render_maze(void) {
-    uint8_t row;
-    for (row = 0; row < MAZE_ROWS; row++) {
-        uint8_t tile_row_l0[SCREEN_COLS];
-        uint8_t tile_row_l1[SCREEN_COLS];
-        uint8_t col;
-        memset(tile_row_l0, (uint8_t)(TILE_BLANK & 0xFF), SCREEN_COLS);
-        memset(tile_row_l1, TILE_BLANK_ATTR, SCREEN_COLS);
-        for (col = 0; col < MAZE_COLS; col++) {
-            uint8_t sx = MAZE_OFFSET_X + col;
-            tile_row_l0[sx] = zpac_maze_map[row][col];
-            tile_row_l1[sx] = zpac_maze_attr[row][col];
-        }
-        gfx_tilemap_load(&vctx, tile_row_l0, SCREEN_COLS, 0, 0, MAZE_OFFSET_Y + row);
-        gfx_tilemap_load(&vctx, tile_row_l1, SCREEN_COLS, 1, 0, MAZE_OFFSET_Y + row);
     }
 }
 

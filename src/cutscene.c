@@ -26,6 +26,10 @@ extern void put_text(uint8_t col, uint8_t row, const char* text, uint8_t pal);
 /* Animation frame timing (frames between animation changes) */
 #define CS_ANIM_SPEED  4
 
+/* 75fps movement compensation: move 4 out of 5 frames = 60 effective steps/sec.
+ * Using uint8_t counter (cheap) instead of tick%5 (expensive 16-bit division). */
+static uint8_t cs_skip;
+
 /* Hide all cutscene sprites off-screen (15 covers all acts) */
 static void cs_hide_sprites(void) {
     uint8_t i;
@@ -268,6 +272,7 @@ static void cutscene_act1(void) {
     pac_x = 660;
     ghost_x = 760;
     tick = 0;
+    cs_skip = 0;
 
     while (pac_x > -40) {
         gfx_wait_vblank(&vctx);
@@ -286,16 +291,20 @@ static void cutscene_act1(void) {
                        ghost_tiles, PAL_BLINKY, 0);
 
         /* Move: both go left, Blinky slightly faster (gains but never passes) */
-        pac_x -= 3;
-        ghost_x -= 3;
-        if ((tick & 3) == 0) ghost_x--;  /* extra 1px every 4 frames */
+        /* 75fps: skip movement 1 frame in 5 = 60 effective steps/sec */
+        cs_skip++; if (cs_skip >= 5) cs_skip = 0;
+        if (cs_skip) {
+            pac_x -= 3;
+            ghost_x -= 3;
+            if ((tick & 3) == 0) ghost_x--;
+        }
 
         tick++;
     }
 
     /* Hide sprites, pause */
     cs_hide_sprites();
-    cs_wait(60);  /* ~1 second pause */
+    cs_wait(75);  /* ~1 second pause at 75fps */
 
     /* Phase 2: Blinky frightened enters from left, runs right (slow).
      * After a delay, ZPac (big placeholder) enters from left (fast).
@@ -304,14 +313,16 @@ static void cutscene_act1(void) {
     pac_x = -32;  /* Pac starts off-screen, enters later */
     tick = 0;
 
+    cs_skip = 0;
     {
         uint8_t pac_visible = 0;  /* ZPac not yet on screen */
-        uint16_t pac_delay = 90;  /* frames before ZPac enters (~1.5 sec) */
+        uint16_t pac_delay = 113;  /* frames before ZPac enters (~1.5 sec at 75fps) */
 
         while (ghost_x < 680) {
             gfx_wait_vblank(&vctx);
             gfx_wait_end_vblank(&vctx);
             sound_intermission_update();
+            cs_skip++; if (cs_skip >= 5) cs_skip = 0;
 
             /* Blinky: frightened, moving right (slow) */
             ghost_tiles = ((tick / CS_ANIM_SPEED) & 1) ?
@@ -333,12 +344,16 @@ static void cutscene_act1(void) {
                 }
 
                 /* ZPac moves a bit faster than ghost */
-                pac_x += 2;
-                if (tick & 1) pac_x++;
+                if (cs_skip) {
+                    pac_x += 2;
+                    if (tick & 1) pac_x++;
+                }
             }
 
             /* Ghost moves slow */
-            ghost_x += 2;
+            if (cs_skip) {
+                ghost_x += 2;
+            }
 
             tick++;
         }
@@ -346,7 +361,7 @@ static void cutscene_act1(void) {
 
     /* Hide sprites, final pause */
     cs_hide_sprites();
-    cs_wait(60);
+    cs_wait(75);
 
     /* Silence any remaining music */
     sound_stop_all();
@@ -383,6 +398,7 @@ static void cutscene_act2(void) {
     pac_x = 660;
     ghost_x = 760;
     tick = 0;
+    cs_skip = 0;
 
     while (pac_x > -40) {
         gfx_wait_vblank(&vctx);
@@ -399,33 +415,28 @@ static void cutscene_act2(void) {
         ghost_tiles = ((tick / CS_ANIM_SPEED) & 1) ?
                       ghost_left_f1 : ghost_left_f0;
 
-        {
+        cs_skip++; if (cs_skip >= 5) cs_skip = 0;
+        if (cs_skip) {
             int16_t dist_past_nail = nail_x - ghost_x;
 
             if (dist_past_nail < -40) {
-                /* Far before nail: full speed */
                 ghost_x -= 3;
                 if ((tick & 3) == 0) ghost_x--;
             } else if (dist_past_nail < -10) {
-                /* Approaching nail: start easing off slightly */
                 ghost_x -= 3;
             } else if (dist_past_nail < 5) {
-                /* Near/just past nail: slowing */
                 ghost_x -= 2;
             } else if (dist_past_nail < 12) {
-                /* Past nail: stuttering */
                 if (tick & 1) ghost_x -= 1;
             } else if (dist_past_nail < 21) {
-                /* Heavy stutter */
                 if ((tick % 4) == 0) ghost_x -= 1;
             }
-            /* >= 21: stuck */
         }
 
         cs_render_2x2(CS_SPR_GHOST_P1, ghost_x, CS_Y,
                        ghost_tiles, PAL_BLINKY, 0);
 
-        pac_x -= 3;
+        if (cs_skip) pac_x -= 3;
         tick++;
     }
 
@@ -439,7 +450,7 @@ static void cutscene_act2(void) {
 
     /* ---- Phase 2: Blinky stuck, struggling ---- */
     /* Short struggle animation: Blinky tries to move left, snaps back */
-    for (f = 0; f < 25; f++) {
+    for (f = 0; f < 31; f++) {
         gfx_wait_vblank(&vctx);
         gfx_wait_end_vblank(&vctx);
         sound_intermission_update();
@@ -526,6 +537,7 @@ static void cutscene_act3(void) {
     pac_x = 660;
     ghost_x = 760;
     tick = 0;
+    cs_skip = 0;
 
     while (pac_x > -40) {
         gfx_wait_vblank(&vctx);
@@ -562,9 +574,12 @@ static void cutscene_act3(void) {
             }
         }
 
-        pac_x -= 3;
-        ghost_x -= 3;
-        if ((tick & 3) == 0) ghost_x--;
+        cs_skip++; if (cs_skip >= 5) cs_skip = 0;
+        if (cs_skip) {
+            pac_x -= 3;
+            ghost_x -= 3;
+            if ((tick & 3) == 0) ghost_x--;
+        }
         tick++;
     }
 
@@ -576,6 +591,7 @@ static void cutscene_act3(void) {
 
     ghost_x = -32;
     tick = 0;
+    cs_skip = 0;
 
     while (ghost_x < 680) {
         gfx_wait_vblank(&vctx);
@@ -587,8 +603,11 @@ static void cutscene_act3(void) {
         cs_render_2x2(CS_SPR_GHOST_P1, ghost_x, CS_Y,
                        ghost_tiles, PAL_NAKED_GHOST, 0);
 
-        ghost_x += 1;
-        if (tick & 1) ghost_x++;
+        cs_skip++; if (cs_skip >= 5) cs_skip = 0;
+        if (cs_skip) {
+            ghost_x += 1;
+            if (tick & 1) ghost_x++;
+        }
         tick++;
     }
 

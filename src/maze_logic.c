@@ -8,86 +8,102 @@ const int8_t dir_dy[4] = { 0,  1,  0, -1 };
 uint8_t maze_logic[31][28];
 uint8_t dot_count;
 
-/* ASCII representation of the 28x31 maze layout */
-static const char maze_ascii[31][29] = {
-    "############################",   /* row  0 */
-    "#............##............#",   /* row  1 */
-    "#.####.#####.##.#####.####.#",   /* row  2 */
-    "#o####.#####.##.#####.####o#",   /* row  3  energizer */
-    "#.####.#####.##.#####.####.#",   /* row  4 */
-    "#..........................#",   /* row  5  26 dots */
-    "#.####.##.########.##.####.#",   /* row  6 */
-    "#.####.##.########.##.####.#",   /* row  7 */
-    "#......##....##....##......#",   /* row  8 */
-    "######.##### ## #####.######",   /* row  9 */
-    "######.##### ## #####.######",   /* row 10 */
-    "######.##          ##.######",   /* row 11 */
-    "######.## ###--### ##.######",   /* row 12  ghost door */
-    "######.## #      # ##.######",   /* row 13  ghost house */
-    "      .   #      #   .      ",   /* row 14  tunnel */
-    "######.## #      # ##.######",   /* row 15  ghost house */
-    "######.## ######## ##.######",   /* row 16 */
-    "######.##          ##.######",   /* row 17 */
-    "######.## ######## ##.######",   /* row 18 */
-    "######.## ######## ##.######",   /* row 19 */
-    "#............##............#",   /* row 20 */
-    "#.####.#####.##.#####.####.#",   /* row 21 */
-    "#.####.#####.##.#####.####.#",   /* row 22 */
-    "#o..##.......  .......##..o#",   /* row 23  energizer */
-    "###.##.##.########.##.##.###",   /* row 24 */
-    "###.##.##.########.##.##.###",   /* row 25 */
-    "#......##....##....##......#",   /* row 26 */
-    "#.##########.##.##########.#",   /* row 27 */
-    "#.##########.##.##########.#",   /* row 28 */
-    "#..........................#",   /* row 29 */
-    "############################"    /* row 30 */
+/* Bitpacked maze: 2 bits per cell, 4 cells per byte.
+ * Encoding: 0=wall, 1=dot, 2=walkable(space), 3=ghost_door.
+ * Energizers stored separately (encoded as dot=1 here).
+ * Bit order: first cell in bits 7-6, last in bits 1-0. */
+static const uint8_t maze_packed[217] = {
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x15,0x55,0x55,0x41,0x55,0x55,0x54,
+    0x10,0x04,0x00,0x41,0x00,0x10,0x04,
+    0x10,0x04,0x00,0x41,0x00,0x10,0x04,
+    0x10,0x04,0x00,0x41,0x00,0x10,0x04,
+    0x15,0x55,0x55,0x55,0x55,0x55,0x54,
+    0x10,0x04,0x10,0x00,0x04,0x10,0x04,
+    0x10,0x04,0x10,0x00,0x04,0x10,0x04,
+    0x15,0x54,0x15,0x41,0x54,0x15,0x54,
+    0x00,0x04,0x00,0x82,0x00,0x10,0x00,
+    0x00,0x04,0x00,0x82,0x00,0x10,0x00,
+    0x00,0x04,0x2A,0xAA,0xA8,0x10,0x00,
+    0x00,0x04,0x20,0x3C,0x08,0x10,0x00,
+    0x00,0x04,0x22,0xAA,0x88,0x10,0x00,
+    0xAA,0xA6,0xA2,0xAA,0x8A,0x9A,0xAA,
+    0x00,0x04,0x22,0xAA,0x88,0x10,0x00,
+    0x00,0x04,0x20,0x00,0x08,0x10,0x00,
+    0x00,0x04,0x2A,0xAA,0xA8,0x10,0x00,
+    0x00,0x04,0x20,0x00,0x08,0x10,0x00,
+    0x00,0x04,0x20,0x00,0x08,0x10,0x00,
+    0x15,0x55,0x55,0x41,0x55,0x55,0x54,
+    0x10,0x04,0x00,0x41,0x00,0x10,0x04,
+    0x10,0x04,0x00,0x41,0x00,0x10,0x04,
+    0x15,0x05,0x55,0x69,0x55,0x50,0x54,
+    0x01,0x04,0x10,0x00,0x04,0x10,0x40,
+    0x01,0x04,0x10,0x00,0x04,0x10,0x40,
+    0x15,0x54,0x15,0x41,0x54,0x15,0x54,
+    0x10,0x00,0x00,0x41,0x00,0x00,0x04,
+    0x10,0x00,0x00,0x41,0x00,0x00,0x04,
+    0x15,0x55,0x55,0x55,0x55,0x55,0x54,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+};
+
+/* Energizer positions: (row, col) */
+static const uint8_t energizer_pos[4][2] = {
+    { 3,  1}, { 3, 26}, {23,  1}, {23, 26}
 };
 
 void init_maze_logic(void)
 {
-    uint8_t r, c;
+    uint8_t r, c, i;
     dot_count = 0;
 
-    /* 1. Parse ASCII map */
+    /* 1. Decode bitpacked maze: 2 bits per cell.
+     * 0=wall, 1=dot, 2=walkable, 3=ghost_door */
     for (r = 0; r < 31; r++) {
         for (c = 0; c < 28; c++) {
-            char ch = maze_ascii[r][c];
-            switch (ch) {
-                case '.':
+            uint16_t idx = (uint16_t)r * 28 + c;
+            uint8_t byte_idx = (uint8_t)(idx >> 2);
+            uint8_t shift = (3 - (idx & 3)) << 1;
+            uint8_t val = (maze_packed[byte_idx] >> shift) & 3;
+            switch (val) {
+                case 1:
                     maze_logic[r][c] = CELL_WD;
                     dot_count++;
                     break;
-                case 'o':
-                    maze_logic[r][c] = CELL_WE;
-                    dot_count++;
-                    break;
-                case ' ':
+                case 2:
                     maze_logic[r][c] = CELL_W;
                     break;
-                case '-':
+                case 3:
                     maze_logic[r][c] = CELL_WALKABLE | CELL_GHOST_HOUSE;
                     break;
-                default: /* '#', anything else */
+                default:
                     maze_logic[r][c] = CELL_WALL;
                     break;
             }
         }
     }
 
-    /* 2a. TUNNEL flag: row 14, cols 0-5 and 22-27 */
+    /* 2. Place energizers (overwrite dot with energizer) */
+    for (i = 0; i < 4; i++) {
+        uint8_t er = energizer_pos[i][0];
+        uint8_t ec = energizer_pos[i][1];
+        maze_logic[er][ec] = CELL_WE;
+        /* dot_count already incremented for these cells (they were 1=dot) */
+    }
+
+    /* 3a. TUNNEL flag: row 14, cols 0-5 and 22-27 */
     for (c = 0; c < 6; c++) {
         maze_logic[14][c] |= CELL_TUNNEL;
         maze_logic[14][27 - c] |= CELL_TUNNEL;
     }
 
-    /* 2b. GHOST_HOUSE flag: rows 13-15, cols 11-16 (interior) */
+    /* 3b. GHOST_HOUSE flag: rows 13-15, cols 11-16 (interior) */
     for (r = 13; r <= 15; r++) {
         for (c = 11; c <= 16; c++) {
             maze_logic[r][c] |= CELL_GHOST_HOUSE;
         }
     }
 
-    /* 2c. NO_UP flag: rows 9-11, cols 12-15 (above ghost house) */
+    /* 3c. NO_UP flag: rows 9-11, cols 12-15 (above ghost house) */
     for (r = 9; r <= 11; r++) {
         for (c = 12; c <= 15; c++) {
             if (maze_logic[r][c] & CELL_WALKABLE) {

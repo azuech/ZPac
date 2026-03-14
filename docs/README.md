@@ -948,7 +948,99 @@ The bug was being investigated using a stale binary, which invalidated several t
 The TF card (microSD) consistently fails to initialize with error `TFC0 init error $FD`. ZealOS uses ZealFS v2, not FAT32, requiring the Zeal Disk Tool for proper formatting. A SanDisk SDHC 32GB card was tested and failed; compatibility with the specific card model is under investigation via the Zeal 8-bit Discord community.
 
 
-## 18. Audio: Architecture and Strategy (Technical Reference)
+## 18. Timing Audit and Binary Size Optimization (Phase 11b)
+
+### 18.1 Context
+
+During post-Phase 11 tests on real hardware, the speed increase between level 1 and level 2 felt noticeably too sharp. Investigation revealed systematic errors in the speed tables: the ×1.127 calibration factor had been applied to a wrong base value (307 instead of the correct 433), producing cascading inaccuracies across all speed parameters. A full timing audit was conducted comparing every value against the Pac-Man Dossier Table A.1 and the floooh reference implementation.
+
+Correcting the timing tables caused the binary to grow back toward the 48 KB limit, requiring a structural code optimization pass to recover space.
+
+**Result:** binary reduced from 47,014 to **45,928 bytes**, despite adding new tables and logic.
+
+### 18.2 Speed Table Fix
+
+**Files:** `game_loop.c`, `zpac_types.h`
+
+Only `pac_normal` had been correctly calibrated via MAME benchmarking. All other values had been derived from the wrong base. The correct formula is:
+
+```
+speed_value = 433 × arcade_percentage
+```
+
+Worst errors before the fix:
+- `ghost_fright`: −20% (frightened ghosts too slow)
+- `ghost_tunnel`: −34% (tunnel almost impassable)
+- `pac_fright` L5–20: +6.7% (faster than `pac_normal` — physically nonsensical)
+
+All four speed tiers (L1, L2–4, L5–20, L21+) corrected with all six parameters each.
+
+### 18.3 Elroy Table Expansion
+
+**File:** `ghost.c`
+
+The original Cruise Elroy implementation used 4 generic tiers instead of the 9 distinct per-level combinations in Dossier Table A.1. Updated to `elroy_table[9]` with per-level selection. L21+ corrected from 90%/95% to 100%/105% (values 433/455).
+
+### 18.4 Ghost House Dot Limits per Level
+
+**File:** `ghost.c`
+
+All levels were using L1 limits (Pinky=0, Inky=30, Clyde=60). Replaced with a `dot_limit_table[3][4]` covering three groups:
+
+| Group | Pinky | Inky | Clyde |
+|---|---|---|---|
+| L1 | 0 | 30 | 60 |
+| L2 | 0 | 0 | 50 |
+| L3+ | 0 | 0 | 0 (immediate exit) |
+
+### 18.5 Frightened Flash Count per Level
+
+**Files:** `game_loop.c`, `zpac_types.h`, `ghost.c`
+
+`FRIGHT_FLASH_FRAMES` was a fixed constant (75 frames) and the flash toggle rate (`>> 2`) was too fast. Replaced with a `fright_flash_table[21]` (5 flashes = 80 frames for L1–8, 3 flashes = 48 frames for L9+) and the toggle slowed to `>> 3` (~4.7 blinks/sec, arcade-like). The constant was replaced by the function `get_fright_flash_frames()`.
+
+### 18.6 Cutscene Timing for 75fps
+
+**File:** `cutscene.c`
+
+Cutscene sprite movement speeds had never been adapted from 60fps to 75fps — animations were running ~25% faster than the intermission music. Fix: a `cs_skip` counter (uint8_t, 0–4) skips movement 1 frame in 5, producing 60 effective movement steps/sec. Inter-phase pauses scaled ×1.25.
+
+A first implementation using `tick % 5` (16-bit division) caused a stack overflow crash. The second version using an 8-bit counter has a negligible footprint.
+
+### 18.7 Binary Size Optimizations
+
+| # | Intervention | File | Saving |
+|---|---|---|---|
+| A | Dead code removal | `main.c` | 464 B |
+| B | `maze_ascii` bitpack compression | `maze_logic.c` | 660 B |
+| C | `arcade_colors` nibble pack | `level256.c` | ~230 B |
+| D | Procedural death sound | `sound.c` | ~130 B |
+| E | `pow10` table dedup via extern | `dots.c`, `game_loop.c` | ~28 B |
+| | **Total** | | **~1,512 B** |
+
+**A — Dead code:** `set_sprite_2x2()` and `render_maze()` in `main.c` were never called at runtime.
+
+**B — Maze compression:** the `maze_ascii[]` array (899 bytes of char data) was replaced with `maze_packed[217]` (2 bits per cell) plus `energizer_pos[4][2]` (8 bytes for the 4 energizer positions).
+
+**C — Level 256 palette:** the `arcade_pal_packed[217]` nibble-packed array replaced the original 434-byte table; `map_arcade_to_zpac_palette()` was removed as it became dead code.
+
+**D — Death sound:** `death_snd_vol[90]` replaced by a procedural `death_get_vol()` function; `death_snd_wave[90]` removed (was already dead code).
+
+**E — pow10 dedup:** the `pow10[]` lookup table was declared as `extern` and shared between `dots.c` and `game_loop.c`.
+
+### 18.8 Validation
+
+All tests performed on real hardware using the level-select shortcut in `game_playing_init()`. Test shortcut removed after completion.
+
+| Test | Trigger | Result |
+|---|---|---|
+| Level 256 | `game_level=254` | Right-half corruption visible, 8 dots, intentionally unbeatable ✅ |
+| Cutscene Act 1 | `new_level==2` | ZPac+Blinky left, pause, Blinky blue + Big ZPac right, music sync ✅ |
+| Cutscene Act 2 | `new_level==5` | Nail, tear, Blinky shock+look right, music sync ✅ |
+| Cutscene Act 3 | `new_level==9` | Patched Blinky, naked ghost worm, music sync ✅ |
+
+
+## 19. Audio: Architecture and Strategy (Technical Reference)
 
 ### 17.1 The Platform Gap
 
@@ -984,7 +1076,7 @@ Hold:      bitmap for atomic mute/unmute of multiple voices
 
 ---
 
-## 18. Technical References Used
+## 19. Technical References Used
 
 Reference materials are used to *understand* the target behavior — not as code to port. For every system (ghost AI, speed, audio, rendering) the "what" is studied from documentation and published analyses; the "how" is designed specifically for the Zeal.
 
@@ -1026,7 +1118,7 @@ Reference materials are used to *understand* the target behavior — not as code
 
 ---
 
-## 19. Development Chronology
+## 20. Development Chronology
 
 ### 19.1 Work Sessions
 
@@ -1129,6 +1221,12 @@ Reference materials are used to *understand* the target behavior — not as code
 | 90 | 14/03 | Phase 11 — SNES controller | PIO Port A input via `__sfr __at`, d-pad+Select+Start, anti-noise guard |
 | 91 | 14/03 | Phase 11 — Audio bug investigation | Waka left-channel bug: root cause isolated to master_vol write; debugging from clean snapshot |
 | **92** | **14/03** | **Phase 11 complete** | **✅ Running arcade-perfect on real hardware; SNES input active; 1 audio bug pending** |
+| 93 | 14/03 | Phase 11b — Timing audit | Speed table base error found (307→433); all 4 tiers × 6 parameters corrected |
+| 94 | 14/03 | Phase 11b — Elroy + dot limits | elroy_table[9] per-level, dot_limit_table[3] groups |
+| 95 | 14/03 | Phase 11b — Flash + cutscene | fright_flash_table[21], cs_skip frame-skip (fixed stack overflow) |
+| 96 | 14/03 | Phase 11b — Size optimization | Dead code, maze bitpack, nibble pack, procedural death sound: −1,086 bytes |
+| 97 | 14/03 | Phase 11b — Validation | All cutscenes + Level 256 tested via shortcut on hardware; shortcut removed |
+| **98** | **14/03** | **Phase 11b complete** | **✅ Binary 45,928 bytes; all timing arcade-accurate; 3.2 KB margin** |
 
 ### 19.2 Lessons Learned (Cumulative Log)
 
@@ -1216,9 +1314,17 @@ Reference materials are used to *understand* the target behavior — not as code
 - **L47:** Debugging audio on hardware requires certainty about which binary is running. A stale binary can invalidate multiple test iterations before the issue is discovered. Always confirm the build timestamp or a known behavior before starting an investigation.
 - **L48:** SDCC `__sfr __at(addr)` provides direct Z80 I/O port access without any SDK layer — the correct approach for PIO-based peripherals like the SNES controller adapter.
 
+**Phase 11b:**
+
+- **L49:** Calibrating one speed value correctly against a hardware benchmark (MAME) does not guarantee the others are correct if they share the same base formula. Every speed parameter must be independently verified against the reference table.
+- **L50:** The correct base for ZPac speed values is 433 (pixels/second at 75fps), not 307. Any future speed constant must use `value = 433 × arcade_percentage`.
+- **L51:** `tick % N` for frame-skip logic uses 16-bit division on Z80 (~300+ cycles) and increases code size. With the binary already near the 48 KB RAM limit, the extra code generated pushed the stack into occupied memory, causing a crash. An 8-bit counter incremented each frame has identical effect, negligible code size, and zero division cost.
+- **L52:** Before any binary size optimization, remove dead code first — it yields the highest return for zero risk. `set_sprite_2x2()` and `render_maze()` in `main.c` alone recovered 464 bytes.
+- **L53:** Bitpacking lookup tables (2 bits/cell for maze, nibble-pack for palette) is the most effective structural compression for Z80: no runtime decompression overhead beyond a shift/mask, and savings of 50-75% on the original array size.
+
 ---
 
-## 20. Current Status and Next Steps
+## 21. Current Status and Next Steps
 
 ### 20.1 Completed Phases
 
@@ -1236,27 +1342,21 @@ Reference materials are used to *understand* the target behavior — not as code
 | Phase 9 — Title Screen & Attract Mode | ✅ | 08/03/2026 | Full state machine, attract loop, coin/credit, high score |
 | Phase 10 — Intermission & Level 256 | ✅ | 10/03/2026 | 3-act cutscenes, Level 256 bug, intermission music, calibration |
 | Phase 11 — Hardware Port & Calibration | ✅ | 14/03/2026 | Running on real hardware, 75Hz calibration, SNES controller, dual-path tileset |
+| Phase 11b — Timing Audit & Size Optimization | ✅ | 14/03/2026 | Speed tables corrected, Elroy/dot limits per-level, binary 47014→45928 bytes |
 
 ### 20.2 Technical Debt
 
 - **Timing**: arcade-perfect at 3.76s vs 3.78s MAME reference (−0.5%) on real hardware at 75Hz.
-- **Binary size**: 47,014 bytes on ~48KB available. RLE compression remains the strategy for any further expansion.
-- **Audio bug**: waka-waka plays left-channel only after eating fruit. Root cause: `zvb_peri_sound_master_vol` write during gameplay corrupts right channel. Debugging in progress from last known-good snapshot.
-- **SD card**: `TFC0 init error $FD` with SanDisk SDHC 32GB. Compatibility under investigation via Zeal Discord.
-- **z88dk toolchain**: snap package incompatible with ZealOS Makefile (`unknown flag 'I'`). ZealOS recompilation pending.
-
+- **Binary size**: 45,928 bytes on ~48KB available (~3.2 KB margin). Sufficient for minor features; major additions would require `--max-allocs-per-node 50000` or further structural compression.
 ### 20.3 Open Items
 
 | Item | Status |
 |---|---|
-| Waka-waka left-channel audio bug | 🔄 In progress |
-| SD card compatibility (TFC0 init error) | 🔄 Investigating via Discord |
-| z88dk toolchain for ZealOS recompile | 🔄 Pending |
 | NOR flash deployment (39SF040 + TL866) | ⏳ Planned |
 
 ---
 
-## 21. Architectural Patterns Adopted
+## 22. Architectural Patterns Adopted
 
 The architectural patterns were not chosen arbitrarily: each is the result of a joint evaluation where Azuech defined the priorities (authenticity, simplicity, testability) and Claude proposed technical options with their trade-offs.
 
@@ -1292,7 +1392,7 @@ Following the floooh model, all game state lives in a single nested global struc
 
 ---
 
-## 22. Glossary
+## 23. Glossary
 
 | Term | Meaning in the ZPac Context |
 |---|---|
@@ -1315,4 +1415,4 @@ Following the floooh model, all game state lives in a single nested global struc
 ---
 
 *Living document — updated at every significant milestone.*
-*Last update: Phase 11 complete (March 14, 2026).*
+*Last update: Phase 11b complete (March 14, 2026).*

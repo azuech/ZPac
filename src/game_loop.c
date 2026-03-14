@@ -41,10 +41,10 @@ speed_set_t cur_spd;
 /* 4 speed tiers: L1, L2-4, L5-20, L21+ */
 static const speed_set_t speed_tiers[4] = {
     /*  pac_n  pac_f  pac_d  gho_n  gho_f  gho_t */
-    {   346,   404,   289,   318,   173,   115 },  /* Tier 0: L1 (75fps) */
-    {   390,   433,   318,   361,   187,   130 },  /* Tier 1: L2-4 */
-    {   433,   462,   346,   404,   202,   144 },  /* Tier 2: L5-20 */
-    {   390,   462,   318,   404,   202,   144 }   /* Tier 3: L21+ */
+    {   346,   390,   307,   325,   217,   173 },  /* Tier 0: L1   — 80/90/71/75/50/40 % */
+    {   390,   411,   342,   368,   238,   195 },  /* Tier 1: L2-4 — 90/95/79/85/55/45 % */
+    {   433,   433,   377,   411,   260,   217 },  /* Tier 2: L5-20— 100/100/87/95/60/50 % */
+    {   390,   390,   342,   411,   217,   217 }   /* Tier 3: L21+ — 90/90/79/95/50/50 % */
 };
 
 void update_level_speeds(void) {
@@ -66,6 +66,20 @@ uint16_t get_fright_duration(void) {
     uint8_t idx = game_level;
     if (idx >= 21) idx = 20;
     return (uint16_t)fright_dur_table[idx];
+}
+
+/* Fright flash warning duration per level in frames at 75fps.
+ * Each flash cycle = 16 frames (8 per half at >>3 toggle).
+ * Table A.1: 5 flashes (L1-8,L10-11,L14) = 80f, 3 flashes (L9,L12-13,L15-16,L18) = 48f. */
+static const uint16_t fright_flash_table[21] = {
+    80, 80, 80, 80, 80, 80, 80, 80,  48, 80,
+    80, 48, 48, 80, 48, 48,   0, 48,   0,  0, 0
+};
+
+uint16_t get_fright_flash_frames(void) {
+    uint8_t idx = game_level;
+    if (idx >= 21) idx = 20;
+    return fright_flash_table[idx];
 }
 
 /* Check if the adjacent tile in the given direction is walkable */
@@ -626,12 +640,9 @@ static void high_score_render(void) {
     uint8_t col = 17;
     uint8_t started = 0;
     uint8_t i;
-    static const uint32_t p10[7] = {
-        1000000UL,100000UL,10000UL,1000UL,100UL,10UL,1UL
-    };
     for (i = 0; i < 7; i++) {
         uint8_t digit = 0;
-        while (val >= p10[i]) { val -= p10[i]; digit++; }
+        while (val >= pow10[i]) { val -= pow10[i]; digit++; }
         if (digit > 0 || started || i >= 5) {
             uint16_t tile_idx = FONT_0 + digit;
             uint8_t attr = (uint8_t)(PAL_FONT << 4);

@@ -5,6 +5,7 @@
 
 extern uint32_t score;
 extern uint32_t high_score;
+extern const uint32_t pow10[7];
 
 void dots_init(void);
 void dots_level_reset(void);  /* Reset deferred queue only (keeps score) */

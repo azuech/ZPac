@@ -17,43 +17,43 @@
 #define SND_WAKA     2    /* waka sound active on voice 1 */
 #define SND_FRIGHT   3
 
-/* === Siren parameters (tuned) ===
- * Step  87 per frame (0x0057), half-cycle = 10 frames (0.17s)
- * Full cycle = 20 frames (0.33s) — fast "uauauaua" sound. */
+/* === Siren parameters (tuned for 75fps) ===
+ * Step  70 per frame, half-cycle = 12 frames (0.16s)
+ * Full cycle = 24 frames (0.32s) — fast "uauauaua" sound. */
 #define SIREN_FREQ_LOW    0x022E
 #define SIREN_FREQ_HIGH   0x0575
-#define SIREN_STEP        87
+#define SIREN_STEP        70
 
-/* === Waka-waka parameters ===
+/* === Waka-waka parameters (tuned for 75fps) ===
  * Two alternating sounds on VOICE1:
- * eatdot1: starts high (0x02ED, ~496Hz), descends 0x68/frame for 5 frames
- * eatdot2: starts low  (0x00F7, ~164Hz), ascends  0x68/frame for 5 frames
+ * eatdot1: starts high (0x02ED, ~496Hz), descends 0x53/frame for 6 frames
+ * eatdot2: starts low  (0x00F7, ~164Hz), ascends  0x53/frame for 6 frames
  * Waveform: square 50% duty (square is closer on Zeal PSG
  * for a "crunchy" eating sound). */
 #define WAKA_FREQ_HIGH    0x02ED
 #define WAKA_FREQ_LOW     0x00F7
-#define WAKA_STEP         0x0068
-#define WAKA_DURATION     5
+#define WAKA_STEP         0x0053
+#define WAKA_DURATION     6
 
-/* === Fright sound parameters (tuned for Zeal PSG) ===
+/* === Fright sound parameters (tuned for 75fps) ===
  * Rapid ascending tone on VOICE0, replaces siren during frightened mode.
- * Resets to base frequency every 8 frames.
+ * Resets to base frequency every 10 frames.
  * Base freq: ~140 Hz = 0x00D0 (Zeal PSG)
- * Step: 0x00D0 per frame
- * After 7 frames: 0x0680 (~1120 Hz), then reset.
+ * Step: 0x00A6 per frame
+ * After 9 frames: ~0x0674 (~1110 Hz), then reset.
  * Waveform: sawtooth. */
 #define FRIGHT_FREQ_BASE  0x00D0
-#define FRIGHT_STEP       0x00D0
-#define FRIGHT_CYCLE      8
+#define FRIGHT_STEP       0x00A6
+#define FRIGHT_CYCLE      10
 
-/* === Ghost eaten parameters ===
+/* === Ghost eaten parameters (tuned for 75fps) ===
  * Rising sweep on VOICE2, one-shot.
- * Start: 0x0060 (~64 Hz), step: 0x0060/frame
- * End: 0x0C00 (~2050 Hz) after 31 frames.
- * Duration: 32 frames (~0.53s at 60fps). */
+ * Start: 0x0030, step: 0x0026/frame
+ * End: ~0x0630 after 39 frames.
+ * Duration: 40 frames (~0.53s at 75fps). */
 #define GHOST_EAT_FREQ_START  0x0030
-#define GHOST_EAT_STEP        0x0030
-#define GHOST_EAT_DURATION    32
+#define GHOST_EAT_STEP        0x0026
+#define GHOST_EAT_DURATION    40
 
 /* === State variables === */
 static uint8_t  snd_state;
@@ -73,11 +73,11 @@ static uint8_t  fruit_snd_active;   /* 1 = fruit eat sound playing on voice 2 */
 static uint8_t  fruit_snd_timer;    /* tick counter */
 static uint16_t fruit_snd_freq;     /* current frequency */
 #define FRUIT_SND_FREQ_START  0x02FE
-#define FRUIT_SND_FREQ_STEP   0x004A
-#define FRUIT_SND_DURATION    24
+#define FRUIT_SND_FREQ_STEP   0x003B
+#define FRUIT_SND_DURATION    30
 
 /* === Prelude data ===
- * 245 ticks at 60fps = ~4.08 seconds.
+ * 245 ticks at 75fps = ~3.27 seconds.
  * Voice 0 = bass (sawtooth, volume fades per note)
  * Voice 1 = melody (square 50%, full volume or silence)
  * Encoding: 1 byte per tick, high nibble = v0 freq index, low = v1 freq index.
@@ -314,8 +314,8 @@ void sound_play_prelude(void) {
 
     snd_bank_restore();
 
-    /* Play with fractional accumulator: 129/100 ticks per frame
-     * to match original timing (4.36s vs 5.63s, ratio ~0.775) */
+    /* Play with fractional accumulator: 95/100 ticks per frame
+     * at 75fps to match arcade timing (~4.36s for 245 ticks) */
     {
         uint16_t tick = 0;
         uint8_t acc = 0;
@@ -326,7 +326,7 @@ void sound_play_prelude(void) {
             gfx_wait_end_vblank(&vctx);
 
             /* Accumulator: process 1 or 2 ticks per frame */
-            acc += 119;
+            acc += 95;
 
             while (acc >= 100 && tick < PRELUDE_NUM_TICKS) {
                 uint8_t data_byte;
@@ -519,6 +519,7 @@ static const uint8_t intm_bass_rle[90] = {
 
 static uint16_t intermission_tick;
 static uint8_t  intermission_loop;
+static uint8_t  intermission_frame_skip;  /* 75fps → 60 ticks/sec */
 static uint8_t  intm_mel_run;   /* current run index in melody RLE */
 static uint8_t  intm_mel_rem;   /* remaining ticks in current melody run */
 static uint16_t intm_mel_freq;  /* current melody frequency */
@@ -526,7 +527,8 @@ static uint8_t  intm_bas_run;   /* current run index in bass RLE */
 static uint8_t  intm_bas_rem;   /* remaining ticks in current bass run */
 static uint16_t intm_bas_freq;  /* current bass frequency */
 
-static uint8_t death_snd_tick;  /* current tick in the death sequence */
+static uint8_t death_snd_tick;       /* current tick in the death sequence */
+static uint8_t death_frame_skip;     /* frame-skip counter (75fps → 60 ticks/sec) */
 
 void sound_death_start(void) {
     snd_bank_save();
@@ -535,6 +537,7 @@ void sound_death_start(void) {
     waka_active = 0;
     ghost_eat_active = 0;
     death_snd_tick = 0;
+    death_frame_skip = 0;
 
     /* Silence everything first */
     zvb_sound_set_voices_vol(VOICE0 | VOICE1 | VOICE2 | VOICE3, VOL_0);
@@ -553,6 +556,13 @@ void sound_death_update(uint8_t unused) {
     uint16_t freq;
     uint8_t vol;
     (void)unused;  /* parameter kept for API compat, we use internal tick */
+
+    /* Frame-skip: advance 4 out of 5 frames (75fps → 60 effective ticks/sec) */
+    death_frame_skip++;
+    if (death_frame_skip >= 5) {
+        death_frame_skip = 0;
+        return;
+    }
 
     if (death_snd_tick >= DEATH_SND_TICKS) {
         /* Auto-silence when dump ends */
@@ -596,12 +606,33 @@ void sound_fruit_eaten(void) {
     zvb_peri_sound_freq_low = fruit_snd_freq & 0xFF;
     zvb_peri_sound_freq_high = (fruit_snd_freq >> 8) & 0xFF;
     zvb_peri_sound_volume = VOL_100;
+    /* Add VOICE2 to both channels so it's audible */
+    zvb_peri_sound_left_channel = VOICE0 | VOICE1 | VOICE2;
+    zvb_peri_sound_right_channel = VOICE0 | VOICE1 | VOICE2;
+
+    snd_bank_restore();
+}
+
+void sound_coin(void) {
+    snd_bank_save();
+
+    fruit_snd_active = 1;
+    fruit_snd_timer = 0;
+    fruit_snd_freq = FRUIT_SND_FREQ_START;
+
+    /* Configure VOICE2: 75% duty square wave */
+    zvb_map_peripheral(ZVB_PERI_SOUND_IDX);
+    zvb_peri_sound_select = VOICE2;
+    zvb_peri_sound_wave = DUTY_CYCLE_75_0 | WAV_SQUARE;
+    zvb_peri_sound_freq_low = fruit_snd_freq & 0xFF;
+    zvb_peri_sound_freq_high = (fruit_snd_freq >> 8) & 0xFF;
+    zvb_peri_sound_volume = VOL_100;
     /* Ensure voice 2 on both channels */
     zvb_peri_sound_left_channel = VOICE0 | VOICE1 | VOICE2;
     zvb_peri_sound_right_channel = VOICE0 | VOICE1 | VOICE2;
-    /* Restore master volume (needed if called from title after sound_stop_all) */
+    /* Restore master volume (zeroed by sound_stop_all on title screen) */
     zvb_peri_sound_master_vol = (VOL_100 << 4) | VOL_100;
-    /* Unhold voice 2 */
+    /* Unhold all voices (held after sound_stop_all) */
     zvb_peri_sound_hold = 0;
 
     snd_bank_restore();
@@ -631,6 +662,7 @@ void sound_intermission_start(void) {
     fruit_snd_active = 0;
     intermission_tick = 0;
     intermission_loop = 0;
+    intermission_frame_skip = 0;
 
     /* Initialize RLE decoders */
     intm_mel_run = 0;
@@ -661,6 +693,13 @@ uint8_t sound_intermission_update(void) {
     uint16_t bas_freq;
     uint8_t mel_vol;
     uint8_t bas_vol;
+
+    /* Frame-skip: advance 4 out of 5 frames (75fps → 60 effective ticks/sec) */
+    intermission_frame_skip++;
+    if (intermission_frame_skip >= 5) {
+        intermission_frame_skip = 0;
+        return 0;  /* not finished, just skipping this frame */
+    }
 
     if (intermission_tick >= INTERMISSION_NUM_TICKS) {
         intermission_loop++;
@@ -827,6 +866,9 @@ void sound_update(void) {
             zvb_peri_sound_freq_low = 0;
             zvb_peri_sound_freq_high = 0;
             zvb_peri_sound_volume = VOL_0;
+            /* Restore channels to VOICE0+VOICE1 only */
+            zvb_peri_sound_left_channel = VOICE0 | VOICE1;
+            zvb_peri_sound_right_channel = VOICE0 | VOICE1;
         } else {
             /* Sweep frequency up */
             ghost_eat_freq += GHOST_EAT_STEP;
@@ -848,9 +890,12 @@ void sound_update(void) {
             zvb_peri_sound_freq_low = 0;
             zvb_peri_sound_freq_high = 0;
             zvb_peri_sound_volume = VOL_0;
+            /* Restore channels to VOICE0+VOICE1 only */
+            zvb_peri_sound_left_channel = VOICE0 | VOICE1;
+            zvb_peri_sound_right_channel = VOICE0 | VOICE1;
         } else {
             /* Sweep: descend for 11 ticks, then ascend */
-            if (fruit_snd_timer <= 11) {
+            if (fruit_snd_timer <= 14) {
                 if (fruit_snd_freq >= FRUIT_SND_FREQ_STEP) {
                     fruit_snd_freq -= FRUIT_SND_FREQ_STEP;
                 } else {

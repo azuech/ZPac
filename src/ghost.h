@@ -21,12 +21,12 @@
 #define GHOST_STATE_LEAVEHOUSE  5
 #define GHOST_STATE_ENTERHOUSE  6
 
-/* === Scatter/Chase phase timing (Level 1, in frames at 60fps) === */
+/* === Scatter/Chase phase timing (Level 1, in frames at 75fps) === */
 /* Arcade Level 1 sequence:
  * Scatter 7s -> Chase 20s -> Scatter 7s -> Chase 20s ->
  * Scatter 5s -> Chase 20s -> Scatter 5s -> Chase permanent */
 #define SC_NUM_PHASES  8
-/* Phase durations in frames (60fps): 7s=420, 20s=1200, 5s=300, 0=infinite */
+/* Phase durations in frames (75fps): 7s=525, 20s=1500, 5s=375, 0=infinite */
 /* Stored as extern const in ghost.c to save ROM vs repeated defines */
 
 /* === Scatter/Chase global state (extern, defined in ghost.c) === */
@@ -98,13 +98,13 @@ extern const uint8_t scatter_target_y[NUM_GHOSTS];
 #define GLOBAL_DOT_CLYDE   32
 
 /* Force leave timer: frames without eating before forcing next ghost out. */
-#define FORCE_LEAVE_FRAMES  240   /* 4 seconds at 60fps */
+#define FORCE_LEAVE_FRAMES  300   /* 4 seconds at 75fps */
 
 /* Frightened mode duration (Level 1): 6 seconds. */
-#define FRIGHT_DURATION_L1  360   /* 6 seconds at 60fps */
+#define FRIGHT_DURATION_L1  450   /* 6 seconds at 75fps */
 
-/* Ghost house speed: half of normal at 60fps */
-#define SPD_GHOST_HOUSE     198   /* ~0.77 px/frame, half of normal */
+/* Ghost house speed: half of normal at 75fps */
+#define SPD_GHOST_HOUSE     158   /* ~0.62 px/frame at 75fps, half of normal */
 
 /* === Ghost House state (extern, defined in ghost.c) === */
 extern uint16_t ghost_house_force_timer;   /* frames since last dot eaten */

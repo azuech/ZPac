@@ -20,11 +20,11 @@ static uint8_t fruit_spawned_170;/* already spawned at 170 dots this level */
 static uint8_t  popup_active;    /* 1 = score popup showing */
 static uint16_t popup_timer;     /* frames remaining */
 
-#define POPUP_DURATION  120  /* ~2 sec at 60fps */
+#define POPUP_DURATION  150  /* ~2 sec at 75fps */
 
 /* Duration fruit stays on screen: ~10 seconds.
- * At ~60fps = 600 frames. Adjust if actual framerate differs. */
-#define FRUIT_DURATION  600
+ * At ~75fps = 750 frames. Adjust if actual framerate differs. */
+#define FRUIT_DURATION  750
 
 /* Fruit position: tile (14, 17) in the logic grid.
  * tile_sub_to_pixel: tile*12 + sub = 14*12+6 = 174 for X, 17*12+6 = 210 for Y

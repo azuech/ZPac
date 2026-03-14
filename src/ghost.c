@@ -55,39 +55,39 @@ static const uint8_t start_dot_limit[NUM_GHOSTS] = {
 static const uint8_t house_target_x[NUM_GHOSTS] = { 14, 14, 12, 16 };
 static const uint8_t house_target_y[NUM_GHOSTS] = { 14, 14, 14, 14 };
 
-/* Scatter/Chase phase durations in frames (60fps).
+/* Scatter/Chase phase durations in frames (75fps).
  * 3 tiers: L1, L2-4, L5+.
  * Phase 7 duration 0 = permanent chase (no more transitions). */
 static const uint16_t sc_durations_L1[SC_NUM_PHASES] = {
-    420,   /* Scatter 7s */
-   1200,   /* Chase 20s */
-    420,   /* Scatter 7s */
-   1200,   /* Chase 20s */
-    300,   /* Scatter 5s */
-   1200,   /* Chase 20s */
-    300,   /* Scatter 5s */
+    525,   /* Scatter 7s at 75fps */
+   1500,   /* Chase 20s */
+    525,   /* Scatter 7s */
+   1500,   /* Chase 20s */
+    375,   /* Scatter 5s */
+   1500,   /* Chase 20s */
+    375,   /* Scatter 5s */
       0    /* Chase permanent */
 };
 
 static const uint16_t sc_durations_L2[SC_NUM_PHASES] = {
-    420,   /* Scatter 7s */
-   1200,   /* Chase 20s */
-    420,   /* Scatter 7s */
-   1200,   /* Chase 20s */
-    300,   /* Scatter 5s */
-  61980,   /* Chase 1033s (~17 min) */
-      1,   /* Scatter 1/60s (reversal only) */
+    525,   /* Scatter 7s at 75fps */
+   1500,   /* Chase 20s */
+    525,   /* Scatter 7s */
+   1500,   /* Chase 20s */
+    375,   /* Scatter 5s */
+  65535,   /* Chase ~874s (uint16_t max, arcade ~1033s) */
+      1,   /* Scatter 1/75s (reversal only) */
       0    /* Chase permanent */
 };
 
 static const uint16_t sc_durations_L5[SC_NUM_PHASES] = {
-    300,   /* Scatter 5s */
-   1200,   /* Chase 20s */
-    300,   /* Scatter 5s */
-   1200,   /* Chase 20s */
-    300,   /* Scatter 5s */
-  62220,   /* Chase 1037s (~17 min) */
-      1,   /* Scatter 1/60s (reversal only) */
+    375,   /* Scatter 5s at 75fps */
+   1500,   /* Chase 20s */
+    375,   /* Scatter 5s */
+   1500,   /* Chase 20s */
+    375,   /* Scatter 5s */
+  65535,   /* Chase ~874s (uint16_t max, arcade ~1037s) */
+      1,   /* Scatter 1/75s (reversal only) */
       0    /* Chase permanent */
 };
 
@@ -123,10 +123,10 @@ typedef struct {
 } elroy_params_t;
 
 static const elroy_params_t elroy_tiers[4] = {
-    { 20, 10, 433, 460 },   /* Tier 0: L1 */
-    { 30, 15, 487, 514 },   /* Tier 1: L2-4 */
-    { 40, 20, 541, 568 },   /* Tier 2: L5-20 */
-    { 60, 30, 487, 514 }    /* Tier 3: L21+ */
+    { 20, 10, 346, 368 },   /* Tier 0: L1 */
+    { 30, 15, 390, 411 },   /* Tier 1: L2-4 */
+    { 40, 20, 433, 454 },   /* Tier 2: L5-20 */
+    { 60, 30, 390, 411 }    /* Tier 3: L21+ */
 };
 
 static const elroy_params_t *cur_elroy;

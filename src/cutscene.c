@@ -439,7 +439,7 @@ static void cutscene_act2(void) {
 
     /* ---- Phase 2: Blinky stuck, struggling ---- */
     /* Short struggle animation: Blinky tries to move left, snaps back */
-    for (f = 0; f < 20; f++) {
+    for (f = 0; f < 25; f++) {
         gfx_wait_vblank(&vctx);
         gfx_wait_end_vblank(&vctx);
         sound_intermission_update();
@@ -478,7 +478,7 @@ static void cutscene_act2(void) {
                             ghost_up_f0, PAL_BLINKY, 3);
 
         /* Hold "looking up in shock" for ~1 second */
-        for (f = 0; f < 60; f++) {
+        for (f = 0; f < 75; f++) {
             gfx_wait_vblank(&vctx);
             gfx_wait_end_vblank(&vctx);
             sound_intermission_update();
@@ -490,7 +490,7 @@ static void cutscene_act2(void) {
                             ghost_right_f0, PAL_BLINKY, 3);
 
         /* Hold this pose for ~2 seconds */
-        for (f = 0; f < 120; f++) {
+        for (f = 0; f < 150; f++) {
             gfx_wait_vblank(&vctx);
             gfx_wait_end_vblank(&vctx);
             sound_intermission_update();
@@ -508,7 +508,7 @@ static void cutscene_act2(void) {
         gfx_sprite_render(&vctx, 11, &spr);
     }
     sound_stop_all();
-    cs_wait(30);
+    cs_wait(38);
 }
 
 /* ================================================================
@@ -569,7 +569,7 @@ static void cutscene_act3(void) {
     }
 
     cs_hide_sprites();
-    cs_wait(60);
+    cs_wait(75);
 
     /* Phase 2: Naked ghost crosses left to right */
     gfx_palette_load(&vctx, (void*)naked_ghost_palette, 32, 160);
@@ -594,7 +594,7 @@ static void cutscene_act3(void) {
 
     cs_hide_sprites();
     sound_stop_all();
-    cs_wait(30);
+    cs_wait(38);
 }
 
 /* ================================================================

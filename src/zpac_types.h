@@ -41,18 +41,18 @@
 #define SPEED_GHOST_TUNNEL_L1  0x24922492UL  /* 13/32 = ~40% */
 
 /* ---- Fixed-point 8.8 speeds (256 = 1.0 pixel/frame) ----
- * Base "100% speed" = 384 (1.5 px/frame at 60fps, compensating for 1.5× tile scale).
+ * Base "100% speed" = 307 (1.2 px/frame at 75fps, compensating for 1.5× tile scale).
  * Multiples of 256 = zero jitter. Halves = perfect alternation. */
-#define SPD_PAC_NORMAL_L1    433   /* ~1.69 px/frame at 60fps */
-#define SPD_PAC_FRIGHT_L1    505   /* ~1.97 px/frame */
-#define SPD_PAC_DOT_L1       361   /* ~1.41 px/frame */
-#define SPD_GHOST_NORMAL_L1  397   /* ~1.55 px/frame */
-#define SPD_GHOST_FRIGHT_L1  216   /* ~0.84 px/frame */
-#define SPD_GHOST_TUNNEL_L1  144   /* ~0.56 px/frame */
-#define SPD_GHOST_EYES_L1    595   /* ~2.32 px/frame */
+#define SPD_PAC_NORMAL_L1    346   /* ~1.35 px/frame at 75fps */
+#define SPD_PAC_FRIGHT_L1    404   /* ~1.58 px/frame */
+#define SPD_PAC_DOT_L1       289   /* ~1.13 px/frame */
+#define SPD_GHOST_NORMAL_L1  318   /* ~1.24 px/frame */
+#define SPD_GHOST_FRIGHT_L1  173   /* ~0.68 px/frame */
+#define SPD_GHOST_TUNNEL_L1  115   /* ~0.45 px/frame */
+#define SPD_GHOST_EYES_L1    476   /* ~1.86 px/frame */
 
-#define FRIGHT_FLASH_FRAMES  60    /* ~1 sec at 60fps */
-#define GHOST_EATEN_FREEZE   60    /* ~1 sec freeze at 60fps */
+#define FRIGHT_FLASH_FRAMES  75    /* ~1 sec at 75fps */
+#define GHOST_EATEN_FREEZE   75    /* ~1 sec freeze at 75fps */
 
 /* Movement delta per direction: dx[dir], dy[dir] */
 /* DIR_RIGHT=0, DIR_DOWN=1, DIR_LEFT=2, DIR_UP=3 */

@@ -31,7 +31,7 @@ static uint8_t demo_mode;
 static uint16_t demo_frame_count;
 static uint8_t pending_coin_sound;
 static uint8_t pending_start;
-#define DEMO_DURATION  3000
+#define DEMO_DURATION  3750
 
 uint8_t game_level = 0;
 uint8_t lives = 3;
@@ -41,10 +41,10 @@ speed_set_t cur_spd;
 /* 4 speed tiers: L1, L2-4, L5-20, L21+ */
 static const speed_set_t speed_tiers[4] = {
     /*  pac_n  pac_f  pac_d  gho_n  gho_f  gho_t */
-    {   433,   505,   361,   397,   216,   144 },  /* Tier 0: L1 */
-    {   487,   541,   397,   451,   234,   162 },  /* Tier 1: L2-4 */
-    {   541,   577,   433,   505,   252,   180 },  /* Tier 2: L5-20 */
-    {   487,   577,   397,   505,   252,   180 }   /* Tier 3: L21+ */
+    {   346,   404,   289,   318,   173,   115 },  /* Tier 0: L1 (75fps) */
+    {   390,   433,   318,   361,   187,   130 },  /* Tier 1: L2-4 */
+    {   433,   462,   346,   404,   202,   144 },  /* Tier 2: L5-20 */
+    {   390,   462,   318,   404,   202,   144 }   /* Tier 3: L21+ */
 };
 
 void update_level_speeds(void) {
@@ -56,10 +56,10 @@ void update_level_speeds(void) {
     cur_spd = speed_tiers[tier];
 }
 
-/* Fright duration per level in frames at 60fps */
+/* Fright duration per level in frames at 75fps */
 static const uint16_t fright_dur_table[21] = {
-    360, 300, 240, 180, 120, 300, 120, 120,  60, 300,
-    120,  60,  60, 180,  60,  60,   0,  60,   0,   0, 0
+    450, 375, 300, 225, 150, 375, 150, 150,  75, 375,
+    150,  75,  75, 225,  75,  75,   0,  75,   0,   0, 0
 };
 
 uint16_t get_fright_duration(void) {
@@ -254,7 +254,7 @@ static void level_complete_sequence(void) {
     /* Phase 1: Freeze ~1 sec */
     hide_all_ghosts();
     update_zpac_sprites();
-    for (f = 0; f < 25; f++) {
+    for (f = 0; f < 31; f++) {
         gfx_wait_end_vblank(&vctx);
         gfx_wait_vblank(&vctx);
     }
@@ -278,7 +278,7 @@ static void level_complete_sequence(void) {
             } else {
                 gfx_palette_load(&vctx, (void*)zpac_palette, 32, 0);
             }
-            for (wi = 0; wi < 10; wi++) {
+            for (wi = 0; wi < 13; wi++) {
                 gfx_wait_end_vblank(&vctx);
                 gfx_wait_vblank(&vctx);
             }
@@ -331,7 +331,7 @@ static void level_complete_sequence(void) {
 
     /* Phase 4: "READY!" ~2 sec */
     put_text(17, 16, "READY!", PAL_ZPAC);
-    for (f = 0; f < 50; f++) {
+    for (f = 0; f < 63; f++) {
         gfx_wait_end_vblank(&vctx);
         gfx_wait_vblank(&vctx);
     }
@@ -427,7 +427,7 @@ static void show_game_over(void) {
 
     /* Wait ~3 seconds (180 frames), shorter in demo mode */
     {
-        uint8_t wait = demo_mode ? 60 : 180;
+        uint8_t wait = demo_mode ? 75 : 225;
         uint8_t ff;
         for (ff = 0; ff < wait; ff++) {
             gfx_wait_vblank(&vctx);
@@ -498,7 +498,7 @@ static uint8_t death_reset(void) {
     /* Phase 1: Freeze ~1 second — everyone visible and still */
     update_zpac_sprites();
     ghosts_render();
-    for (f = 0; f < 25; f++) {
+    for (f = 0; f < 31; f++) {
         gfx_wait_end_vblank(&vctx);
         gfx_wait_vblank(&vctx);
     }
@@ -510,12 +510,12 @@ static uint8_t death_reset(void) {
     /* Start death jingle */
     if (!demo_mode) sound_death_start();
 
-    /* Phase 3: Death animation — 12 frames, ~8 ticks each.
-     * Sound updates every vblank (90 ticks total, 1 per vblank). */
+    /* Phase 3: Death animation — 12 frames, ~10 ticks each.
+     * Sound updates every vblank (120 ticks total, 1 per vblank). */
     for (frame = 0; frame < 12; frame++) {
         uint8_t tick;
         render_death_frame(frame);
-        for (tick = 0; tick < 8; tick++) {
+        for (tick = 0; tick < 10; tick++) {
             gfx_wait_end_vblank(&vctx);
             gfx_wait_vblank(&vctx);
             if (!demo_mode) sound_death_update(0);
@@ -535,7 +535,7 @@ static uint8_t death_reset(void) {
             gfx_sprite_render(&vctx, si, &spr);
         }
     }
-    for (f = 0; f < 12; f++) {
+    for (f = 0; f < 15; f++) {
         gfx_wait_end_vblank(&vctx);
         gfx_wait_vblank(&vctx);
     }
@@ -595,7 +595,7 @@ static uint8_t death_reset(void) {
 
     /* Show READY! for ~2 seconds */
     put_text(17, 16, "READY!", PAL_ZPAC);
-    for (f = 0; f < 50; f++) {
+    for (f = 0; f < 63; f++) {
         gfx_wait_end_vblank(&vctx);
         gfx_wait_vblank(&vctx);
     }
@@ -906,7 +906,7 @@ static void demo_playing_init(void) {
     /* Wait ~2 seconds, check coin */
     {
         uint8_t f;
-        for (f = 0; f < 120; f++) {
+        for (f = 0; f < 150; f++) {
             gfx_wait_vblank(&vctx);
             {
                 uint8_t key = input_read_menu();
@@ -1140,7 +1140,7 @@ static void attract_update(void) {
         case ATTRACT_STATE_REVERSE:
             /* Brief pause (10 frames) while eating pill */
             attract_timer++;
-            if (attract_timer >= 10) {
+            if (attract_timer >= 13) {
                 attract_state = ATTRACT_STATE_EATING;
                 attract_eating_idx = 0;
                 attract_eat_pause = 0;
@@ -1197,7 +1197,7 @@ static void attract_update(void) {
                         PAL_GHOST_SCORE, 0,
                         attract_ghost_x[gi], ATTRACT_Y);
 
-                    attract_eat_pause = 60;
+                    attract_eat_pause = 75;
                     attract_eating_idx++;
                 }
             }
@@ -1225,7 +1225,7 @@ static void attract_update(void) {
 
         case ATTRACT_STATE_COOLDOWN:
             attract_timer++;
-            if (attract_timer >= 180) {
+            if (attract_timer >= 225) {
                 attract_cycle_count++;
                 if (attract_cycle_count >= 1) {
                     attract_demo_requested = 1;
@@ -1277,7 +1277,7 @@ static void state_title_enter(void) {
     /* Play pending coin sound from demo mode */
     if (pending_coin_sound) {
         pending_coin_sound = 0;
-        sound_fruit_eaten();
+        sound_coin();
     }
 
     title_anim_timer = 0;
@@ -1293,14 +1293,14 @@ static uint8_t state_title_update(void) {
     title_anim_timer++;
 
     /* Sequential animation: each ghost has 3 elements (image, name, nick)
-     * spaced 60 frames apart. 180 frames per ghost total.
-     * Ghost 0 starts at tick 60. */
+     * spaced 75 frames apart. 225 frames per ghost total.
+     * Ghost 0 starts at tick 75. */
     {
         uint8_t gi;
         for (gi = 0; gi < 4; gi++) {
             uint8_t row = 7 + gi * 3;
             uint8_t pal = title_ghost_pals[gi];
-            uint16_t base_tick = 60 + (uint16_t)gi * 180;
+            uint16_t base_tick = 75 + (uint16_t)gi * 225;
 
             /* Ghost image appears */
             if (title_anim_timer == base_tick) {
@@ -1325,33 +1325,33 @@ static uint8_t state_title_update(void) {
                 }
             }
 
-            /* Character name appears (60 frames after image) */
-            if (title_anim_timer == base_tick + 60) {
+            /* Character name appears (75 frames after image) */
+            if (title_anim_timer == base_tick + 75) {
                 put_text(14, row + 1, title_names[gi], pal);
             }
 
-            /* Nickname appears (120 frames after image) */
-            if (title_anim_timer == base_tick + 120) {
+            /* Nickname appears (150 frames after image) */
+            if (title_anim_timer == base_tick + 150) {
                 put_text(23, row + 1, title_nicks[gi], pal);
             }
         }
     }
 
     /* Dot scoring info after all ghosts.
-     * Last nickname at tick 60 + 3*180 + 120 = 720.
-     * Dot at 780, pill at 840. */
-    if (title_anim_timer == 780) {
+     * Last nickname at tick 75 + 3*225 + 150 = 900.
+     * Dot at 975, pill at 1050. */
+    if (title_anim_timer == 975) {
         put_char(14, 20, TILE_INTRO_DOT, PAL_MAZE);
         put_text(16, 20, "10 PTS", PAL_FONT);
     }
 
-    if (title_anim_timer == 840) {
+    if (title_anim_timer == 1050) {
         put_char(14, 22, TILE_INTRO_PILL, PAL_MAZE);
         put_text(16, 22, "50 PTS", PAL_FONT);
     }
 
-    /* Start attract chase 3 sec after last text (pill at 840) */
-    if (title_anim_timer == 1020) {
+    /* Start attract chase 3 sec after last text (pill at 1050) */
+    if (title_anim_timer == 1275) {
         attract_state = ATTRACT_STATE_SETUP;
     }
 
@@ -1371,7 +1371,7 @@ static uint8_t state_title_update(void) {
     if (key == INPUT_COIN) {
         if (credits < 99) credits++;
         credit_render();
-        sound_fruit_eaten();
+        sound_coin();
         put_text(10, 27, "PUSH SPACE TO START", PAL_FONT);
     }
     if (key == INPUT_START && credits > 0) {
@@ -1466,7 +1466,7 @@ static void game_playing_run(void) {
                 sound_stop_all();
                 update_zpac_sprites();
                 ghosts_render();
-                for (f = 0; f < 30; f++) {
+                for (f = 0; f < 38; f++) {
                     gfx_wait_end_vblank(&vctx);
                     gfx_wait_vblank(&vctx);
                 }
@@ -1474,7 +1474,7 @@ static void game_playing_run(void) {
                 for (f = 0; f < 8; f++) {
                     uint8_t tick;
                     render_death_frame(f);
-                    for (tick = 0; tick < 8; tick++) {
+                    for (tick = 0; tick < 10; tick++) {
                         gfx_wait_end_vblank(&vctx);
                         gfx_wait_vblank(&vctx);
                     }
@@ -1487,7 +1487,7 @@ static void game_playing_run(void) {
                         gfx_sprite_render(&vctx, si, &spr);
                     }
                 }
-                for (f = 0; f < 30; f++) {
+                for (f = 0; f < 38; f++) {
                     gfx_wait_end_vblank(&vctx);
                     gfx_wait_vblank(&vctx);
                 }

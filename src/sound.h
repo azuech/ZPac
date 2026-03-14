@@ -48,4 +48,7 @@ void sound_fruit_eaten(void);
 void sound_intermission_start(void);
 uint8_t sound_intermission_update(void);
 
+/* Play coin insert sound (restores master volume + fruit sound) */
+void sound_coin(void);
+
 #endif /* SOUND_H */

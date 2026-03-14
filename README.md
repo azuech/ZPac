@@ -19,7 +19,9 @@ No original ROM code is used. All behavior is reimplemented from publicly availa
 - Lives system with HUD, fruit bonus, extra life at 10,000 points
 - 12-frame death animation
 - External tileset streaming via HostFS (~43KB to VRAM)
-- Binary ~45KB (on a ~48KB Z80 RAM limit), external tileset ~49KB streamed to VRAM
+- SNES/Super Famicom controller support via Z80 PIO Port A
+- Timing calibrated for real Zeal hardware (75Hz VBlank, VESA 640×480@75Hz)
+- Binary ~47KB (on a ~48KB Z80 RAM limit), external tileset ~49KB streamed to VRAM
 
 ## Requirements
 
@@ -52,15 +54,14 @@ The output binary is `build/zpac.bin`.
 With the Zeal Native Emulator:
 
 ```bash
-zeal-native -u build/zpac.bin -H data/
+zeal-native -u build/zpac.bin -H build/
 ```
 
-The `-u` flag loads the binary directly. The `-H` flag mounts the `data/` directory as drive `H:` — this is where the game looks for `zpac_tileset.bin` at startup. The tileset must be accessible as `H:/zpac_tileset.bin` for the game to run.
+The `-u` flag loads the binary directly. The `-H` flag mounts the `data/` directory as drive `H:` — this is where the game looks for `zpac_tiles.bin` at startup.
 
-With the real hardware:
+With the real hardware (Zeal v1.2.0 + Video Board v1.1, ZVB firmware v1.0.0 required):
 
-`zpac.bin`
-The file `zpac_tiles.bin` (present in the folder `data` on this repo) must be present on the same path of the executable.
+Copy `zpac.bin` and `zpac_tiles.bin` to the same directory on the Zeal filesystem. The game will look for `zpac_tiles.bin` in the current directory first, then fall back to `H:/zpac_tiles.bin` (emulator HostFS).
 
 ## Project Structure
 
@@ -112,17 +113,20 @@ This approach allows a non-embedded-systems developer to build a complete Z80 ga
 
 ## Current Status
 
-**Phase 10 complete** — all planned development phases are finished:
+**Release Candidate — Phase 11 complete.** ZPac is running on real Zeal hardware.
 
-- Phases 1–2: Maze rendering, sprites, font, palette (Mode 6, 329+ tiles, 2×2 composite sprites)
-- Phase 3: Interactive gameplay at 60fps (tile+sub movement, dot eating, tunnel)
+- Phases 1–2: Maze rendering, sprites, font, palette (Mode 6, 384 tiles, 2×2 composite sprites)
+- Phase 3: Interactive gameplay (tile+sub movement, dot eating, tunnel)
 - Phases 4–6: Complete ghost AI with scatter/chase, frightened mode, eyes, ghost house, level completion
 - Phase 7: Full PSG audio (siren, waka-waka, fright siren, ghost eaten, death jingle)
 - Phase 8: Polish — lives, death animation, fruit bonus, Cruise Elroy, per-level timing tables
 - Phase 9: Title screen, attract mode with demo AI, coin/credit system, high score
-- Phase 10: 3-act intermission cutscenes with music, Level 256 split-screen bug, arcade-speed calibration
+- Phase 10: 3-act intermission cutscenes with music, Level 256 split-screen bug
+- Phase 11: Hardware port — firmware update (bootloader v1.3.1, FPGA v1.0.0), timing recalibration for 75Hz VBlank, SNES controller support
 
-Binary ~45KB on ~48KB Z80 RAM limit; tileset ~49KB loaded externally to VRAM at startup. Game speed currently within 0.5% of the arcade original, calibrated on the Zeal Native Emulator running on a low-spec x64 Linux PC. A port to the physical Zeal 8-bit Computer is planned in the coming weeks, with timing recalibration to match the real platform.
+**Timing** is calibrated for real Zeal hardware running at 75Hz VBlank (VESA 640×480@75Hz), arcade-accurate within 0.5% of the original. The game also runs correctly on the Zeal Native Emulator.
+
+Binary ~47KB on ~48KB Z80 RAM limit; tileset ~49KB streamed to VRAM at startup.
 
 ## Acknowledgments
 

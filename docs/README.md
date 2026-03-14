@@ -904,7 +904,51 @@ Issues identified and resolved:
 
 ---
 
-## 17. Audio: Architecture and Strategy (Technical Reference)
+## 17. Hardware Port and Final Calibration (Phase 11)
+
+### 17.1 First Run on Real Hardware
+
+Phase 11 marked the transition from emulator to physical Zeal v1.2.0 + Video Board v1.1. Before ZPac could run, two firmware updates were required: the bootloader from v1.0.0 to v1.3.1 (applied via UART with a USB-to-TTL adapter), and the FPGA firmware from v0.1.0 to v1.0.0 (required for `gfx_tileset_load()` to function — tileset memory was read-only in earlier versions). Both updates were performed successfully.
+
+ZPac ran on real hardware on the first attempt after firmware update.
+
+### 17.2 Tileset Path and File Rename
+
+The emulator loads the tileset from HostFS (`H:/zpac_tileset.bin`), which does not exist on physical hardware. The loader was updated with a dual-path fallback: it first tries a local path (`zpac_tiles.bin`, for real hardware via ZealFS), then falls back to `H:/zpac_tiles.bin` (emulator). At the same time the tileset file was renamed from `zpac_tileset.bin` to `zpac_tiles.bin` and the executable from `zpac_test.bin` to `zpac.bin`.
+
+### 17.3 75Hz VBlank Calibration
+
+A critical discovery: real Zeal hardware running VESA 640×480 operates at **75Hz VBlank**, not 60Hz. The emulator had been running at 60Hz. This meant all gameplay speeds and frame-count timers were calibrated for the wrong rate.
+
+Benchmark measurement on hardware (corridor traversal: 2.98s measured vs 3.76s MAME reference, ratio ≈ 0.8 = 60/75) confirmed the discrepancy. The fix was systematic across all six files containing timing constants:
+
+- All gameplay speeds: multiplied by **×0.8** (60/75)
+- All frame-count timers: multiplied by **×1.25** (75/60)
+- Audio: prelude accumulator adjusted from 119 to 95; siren/waka/fright step rates ×0.8, durations ×1.25
+- A uint16_t overflow for long chase durations (values exceeding 65,535) was resolved by capping at 65,535 — negligible at ~14.5 minutes of uninterrupted play
+
+Files updated: `zpac_types.h`, `ghost.h`, `ghost.c`, `game_loop.c`, `fruit.c`, `cutscene.c`.
+
+Post-calibration benchmark: corridor traversal 3.76s vs 3.78s MAME reference (−0.5%, arcade-perfect).
+
+### 17.4 SNES Controller
+
+The SNES gamepad adapter (connected to Z80 PIO Port A at 0xD0/0xD2) was implemented entirely within `input.c` using SDCC's `__sfr __at` direct port I/O — no SDK layer required. D-pad maps to directions; Select triggers coin insert (edge detect); Start triggers game start (edge detect). Both keyboard and SNES controller remain active simultaneously; the SNES d-pad overrides keyboard direction input.
+
+An anti-noise guard handles the emulator: if all 12 input bits read as pressed simultaneously (0x0FFF — physically impossible), the input is treated as no controller present.
+
+### 17.5 Audio Bug (Unresolved)
+
+After eating fruit during gameplay, the waka-waka sound plays only on the left channel for the remainder of the session. Root cause: writing to `zvb_peri_sound_master_vol` or `zvb_peri_sound_hold = 0` during active gameplay corrupts the right channel stereo state — a known ZVB SDK hazard that manifests differently in the fruit-eat code path than in the coin-sound path (where a separate `sound_coin()` function was already isolated for this reason).
+
+The bug was being investigated using a stale binary, which invalidated several test iterations before being caught. The decision was made to restore from the last known-good snapshot (post-SNES controller implementation) and restart debugging with the correct binary. Resolution is pending.
+
+### 17.6 SD Card
+
+The TF card (microSD) consistently fails to initialize with error `TFC0 init error $FD`. ZealOS uses ZealFS v2, not FAT32, requiring the Zeal Disk Tool for proper formatting. A SanDisk SDHC 32GB card was tested and failed; compatibility with the specific card model is under investigation via the Zeal 8-bit Discord community.
+
+
+## 18. Audio: Architecture and Strategy (Technical Reference)
 
 ### 17.1 The Platform Gap
 
@@ -994,15 +1038,15 @@ Reference materials are used to *understand* the target behavior — not as code
 | — | 22/02 | floooh analysis | pacman.c analyzed: trigger system, ghost AI, movement patterns |
 | — | 22/02 | Mode 5 analysis | Discovery: 329 tiles > 256 Mode 5 limit → Mode 6 decision |
 | 1 | 21/02 | Asset download | Pipeline plan, graphic and audio source URLs |
-| 2 | 21/02 | Asset cleanup | JPEG artifact cleanup, Color palette reconstructed |
-| 3 | 22/02 | Sprite definition | 66 16×16 sprites |
-| 4 | 22/02 | Maze + font definition | 79 maze tiles + 40 font chars decoded |
+| 2 | 21/02 | Asset cleanup | JPEG artifact cleanup, Color ROM palette reconstructed |
+| 3 | 22/02 | Sprite extraction | 66 16×16 sprites extracted from ROM |
+| 4 | 22/02 | Maze + font extraction | 79 maze tiles + 40 font chars decoded |
 | 5 | 22/02 | PNG → ZVB converter | `zpac_gfx.h` generated with full pipeline |
 | 6 | 22/02 | Documentation | zpac_gfxsrc_reference.md created |
 | 7 | 22/02 | Maze test + debug | First maze render on emulator (artifacts) |
-| 8 | 22/02 | Wall alignment | Root cause: wireframe vs solid tile |
-| 9 | 22/02 | Referral doc search | Analysis of ASCII maze encoding |
-| 10 | 22/02 | Referral doc analisys | Maze decoded, 85 solid tiles |
+| 8 | 22/02 | Wall alignment | Root cause: wireframe vs solid tile — need ROM tiles |
+| 9 | 22/02 | ROM decode search | Analysis of ASCII maze encoding in pacman.c |
+| 10 | 22/02 | ROM extraction | Maze ROM decoded, 85 solid tiles |
 | **11** | **22/02** | **Phase 1 complete** | **✅ 1.5× maze on emulator, Mode 6 confirmed** |
 | 12 | 22/02 | Sprite strategy | 2×2 composite decision (Option F) |
 | 13 | 23/02 | Tile budget analysis | 438/512 estimated → 329/512 after dedup |
@@ -1079,12 +1123,18 @@ Reference materials are used to *understand* the target behavior — not as code
 | 84 | 10/03 | Phase 10 — Cutscene Acts 2/3 | "The Chase" and "They Argue" with naked ghost (horizontal worm) |
 | 85 | 10/03 | Phase 10 — Intermission music | Intermission melody reconstructed from arcade documentation, RLE compression 1316→177 bytes |
 | **86** | **10/03** | **Phase 10 complete** | **✅ Cutscenes + Level 256 + intermission music, binary 47014B** |
+| 87 | 14/03 | Phase 11 — Firmware update | Bootloader v1.3.1 + FPGA v1.0.0 applied; ZPac boots on real hardware ✅ |
+| 88 | 14/03 | Phase 11 — Tileset path + rename | Dual-path fallback (local first, H:/ fallback); zpac_tiles.bin + zpac.bin |
+| 89 | 14/03 | Phase 11 — 75Hz calibration | Hardware VBlank=75Hz confirmed; all speeds ×0.8, all timers ×1.25 across 6 files |
+| 90 | 14/03 | Phase 11 — SNES controller | PIO Port A input via `__sfr __at`, d-pad+Select+Start, anti-noise guard |
+| 91 | 14/03 | Phase 11 — Audio bug investigation | Waka left-channel bug: root cause isolated to master_vol write; debugging from clean snapshot |
+| **92** | **14/03** | **Phase 11 complete** | **✅ Running arcade-perfect on real hardware; SNES input active; 1 audio bug pending** |
 
 ### 19.2 Lessons Learned (Cumulative Log)
 
 **Phase 1:**
 
-- **L1:** PNG sprite sheets from Spriters Resource contain wrong data. The complete palette pipeline must be replicated.
+- **L1:** PNG sprite sheets from Spriters Resource contain raw ROM data, not arcade output. The complete palette pipeline must be replicated.
 - **L2:** The Mode 5 viewport (15 rows) is not enough for the arcade maze layout (31 rows + HUD).
 - **L3:** Mode 6 with 1.5× scaling is the optimal solution: 512 tiles and 4bpp.
 - **L4:** In Mode 6, layer1 = attributes. Every tile requires writes to layer0 AND layer1.
@@ -1158,6 +1208,14 @@ Reference materials are used to *understand* the target behavior — not as code
 - **L42:** Mathematical curves (sin/cos) for large sprites (48×48+) produce much smoother outlines than nearest-neighbor 2× upscale. Offline generation with Python/Pillow is the correct pipeline.
 - **L43:** Claude Code can get file paths wrong when working with Python scripts + tileset. Explicit absolute paths in the prompt are mandatory — never use `find`.
 
+**Phase 11:**
+
+- **L44:** Real Zeal hardware runs at 75Hz VBlank (VESA 640×480@75Hz), not 60Hz. All speeds and frame-count timers must be multiplied by 0.8 and 1.25 respectively when porting from emulator. Never assume the emulator frame rate matches hardware.
+- **L45:** The ZVB firmware version is critical: `gfx_tileset_load()` requires v1.0.0+. Tileset memory is read-only in v0.1.0 — writes are silently ignored, producing a blank or corrupt display with no error.
+- **L46:** Writing `zvb_peri_sound_master_vol` or `zvb_peri_sound_hold = 0` during active gameplay corrupts the right audio channel. The `sound_coin()` and `sound_fruit_eaten()` functions must be kept separate: coin sound (used on title screen) can safely restore master_vol and hold; fruit-eat sound (used during gameplay) must not touch either register.
+- **L47:** Debugging audio on hardware requires certainty about which binary is running. A stale binary can invalidate multiple test iterations before the issue is discovered. Always confirm the build timestamp or a known behavior before starting an investigation.
+- **L48:** SDCC `__sfr __at(addr)` provides direct Z80 I/O port access without any SDK layer — the correct approach for PIO-based peripherals like the SNES controller adapter.
+
 ---
 
 ## 20. Current Status and Next Steps
@@ -1177,18 +1235,24 @@ Reference materials are used to *understand* the target behavior — not as code
 | Phase 8 — Polish and Levels | ✅ | 07/03/2026 | Lives, death, fruit, Cruise Elroy, scatter/chase per level |
 | Phase 9 — Title Screen & Attract Mode | ✅ | 08/03/2026 | Full state machine, attract loop, coin/credit, high score |
 | Phase 10 — Intermission & Level 256 | ✅ | 10/03/2026 | 3-act cutscenes, Level 256 bug, intermission music, calibration |
+| Phase 11 — Hardware Port & Calibration | ✅ | 14/03/2026 | Running on real hardware, 75Hz calibration, SNES controller, dual-path tileset |
 
 ### 20.2 Technical Debt
 
-- **Relative performance**: the game runs ~9% slower than MAME after Phase 10 recalibration (3.76s vs 3.78s arcade, −0.5% — effectively arcade-perfect). No significant open technical debt.
-- **Critical binary size**: binary at 47,014 bytes on ~48KB available. Every new feature must be weighed carefully. RLE for tick-by-tick data is the strategy to adopt for any further expansion.
-- **Phase 10 test shortcut**: `game_level=1, dot_count=10` in `game_playing_init` still active — must be removed before release on real hardware.
+- **Timing**: arcade-perfect at 3.76s vs 3.78s MAME reference (−0.5%) on real hardware at 75Hz.
+- **Binary size**: 47,014 bytes on ~48KB available. RLE compression remains the strategy for any further expansion.
+- **Audio bug**: waka-waka plays left-channel only after eating fruit. Root cause: `zvb_peri_sound_master_vol` write during gameplay corrupts right channel. Debugging in progress from last known-good snapshot.
+- **SD card**: `TFC0 init error $FD` with SanDisk SDHC 32GB. Compatibility under investigation via Zeal Discord.
+- **z88dk toolchain**: snap package incompatible with ZealOS Makefile (`unknown flag 'I'`). ZealOS recompilation pending.
 
-### 20.3 Next Phases
+### 20.3 Open Items
 
-| Phase | Content | Complexity |
-|---|---|---|
-| **Phase 11 — Polish, Debug & Hardware** | Port to physical Zeal v1.2.0 hardware + Video Board v1.1: path `H:` → `A:` or `B:`, firmware update (bootloader v1.3.1, FPGA v1.0.0), flash 39SF040 ROM with TL866, SNES controller test on real hardware, physical hardware timing calibration | High |
+| Item | Status |
+|---|---|
+| Waka-waka left-channel audio bug | 🔄 In progress |
+| SD card compatibility (TFC0 init error) | 🔄 Investigating via Discord |
+| z88dk toolchain for ZealOS recompile | 🔄 Pending |
+| NOR flash deployment (39SF040 + TL866) | ⏳ Planned |
 
 ---
 
@@ -1251,4 +1315,4 @@ Following the floooh model, all game state lives in a single nested global struc
 ---
 
 *Living document — updated at every significant milestone.*
-*Last update: Phase 10 complete (March 10, 2026).*
+*Last update: Phase 11 complete (March 14, 2026).*

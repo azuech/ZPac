@@ -81,7 +81,7 @@ zpac/
 │   ├── zpac_types.h     # Shared structs, enums, speed tables
 │   └── zpac_maze_data.h # Palette, tile maps, sprite defines
 ├── data/
-│   └── zpac_tileset.bin # Pre-built tileset (~49KB, required at runtime)
+│   └── zpac_tiles.bin # Pre-built tileset (~49KB, required at runtime)
 ├── Docs/
 │   |── Bresenham_acc.md # Description of the Bresenham Accumulator used for the gameflow
 │   |── Credits.md       # External sources used for the project
@@ -95,7 +95,7 @@ zpac/
 ## Architecture Notes
 
 - **Mode 6** is used for the tile budget: the game needs 384+ unique tiles, exceeding Mode 5's 256-tile limit
-- **Tileset streaming**: the ~49KB tileset (in `data/`) is streamed to VRAM at startup via HostFS (`H:/zpac_tileset.bin`), keeping the binary small
+- **Tileset streaming**: the ~49KB tileset (in `data/`) is streamed to VRAM at startup, on emulator via HostFS (`H:/zpac_tiles.bin`), keeping the binary small
 - **Bresenham accumulator** drives sub-tile movement to eliminate frame-skip jitter
 - **Deferred tile replacement** uses a 4-frame delay to hide dot-eating transitions under the player sprite
 - **Ghost AI** follows the classic per-ghost targeting rules with scatter/chase mode transitions

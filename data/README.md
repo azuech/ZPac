@@ -6,7 +6,7 @@ This directory contains pre-built binary assets required at runtime.
 
 The complete tileset for ZPac: 384 tiles at 16×16 pixels, 4bpp, totaling ~49KB.
 This file is streamed to VRAM at startup via HostFS and must be accessible
-to the emulator as `H:/zpac_tileset.bin`. On real hardware must be present on the same path of
+to the emulator as `H:/zpac_tiles.bin`. On real hardware must be present on the same path of
 the executable.
 
 When running with the Zeal Native Emulator, use the `-H` flag pointing to

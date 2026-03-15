@@ -934,13 +934,7 @@ The SNES gamepad adapter (connected to Z80 PIO Port A at 0xD0/0xD2) was implemen
 
 An anti-noise guard handles the emulator: if all 12 input bits read as pressed simultaneously (0x0FFF — physically impossible), the input is treated as no controller present.
 
-### 17.5 Audio Bug (Unresolved)
-
-After eating fruit during gameplay, the waka-waka sound plays only on the left channel for the remainder of the session. Root cause: writing to `zvb_peri_sound_master_vol` or `zvb_peri_sound_hold = 0` during active gameplay corrupts the right channel stereo state — a known ZVB SDK hazard that manifests differently in the fruit-eat code path than in the coin-sound path (where a separate `sound_coin()` function was already isolated for this reason).
-
-The bug was being investigated using a stale binary, which invalidated several test iterations before being caught. The decision was made to restore from the last known-good snapshot (post-SNES controller implementation) and restart debugging with the correct binary. Resolution is pending.
-
-### 17.6 SD Card
+### 17.5 SD Card
 
 The TF card (microSD) consistently fails to initialize with error `TFC0 init error $FD`. ZealOS uses ZealFS v2, not FAT32, requiring the Zeal Disk Tool for proper formatting. A SanDisk SDHC 32GB card was tested and failed; compatibility with the specific card model is under investigation via the Zeal 8-bit Discord community.
 

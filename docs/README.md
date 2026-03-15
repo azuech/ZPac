@@ -90,11 +90,11 @@ export ZVB_SDK_PATH=~/Zeal-VideoBoard-SDK
 
 ```bash
 # Standard run (binary + external tileset)
-zeal-native -u zpac_test.bin -H /path/to/assets/
+zeal-native -u build/zpac.bin -H build/
 
 # -u  = load user program
 # -H  = mount host directory as H: drive (hostfs)
-# The tileset is loaded at runtime from H:/zpac_tileset.bin
+# The tileset is loaded at runtime from H:/zpac_tiles.bin
 ```
 
 ### 2.4 Development Workflow
@@ -246,7 +246,7 @@ That headroom, however, was progressively consumed as gameplay systems grew. The
 
 **Attract mode AI.** Implementing a convincing autoplay demo that navigates the maze, reacts to ghosts, and triggers the energizer sequence without human input required several calibration iterations. A ghost danger radius of 4 Manhattan tiles paralyzed ZPac at intersections; the correct value turned out to be 1 tile (immediate adjacency only). Distance-squared navigation outperformed Manhattan distance for smooth corridor following.
 
-**Animation synchronization.** Keeping sprite animations, sound events, scatter/chase timers, frightened flash, and cutscene choreography in sync at a stable 60fps — across a platform where even a division instruction costs 300+ cycles — required careful frame-budget accounting and the `fast_wait_vblank()` optimization that replaced the SDK call.
+**Animation synchronization.** Keeping sprite animations, sound events, scatter/chase timers, frightened flash, and cutscene choreography in sync at a stable frame rate — across a platform where even a division instruction costs 300+ cycles — required careful frame-budget accounting and the `fast_wait_vblank()` optimization that replaced the SDK call. Final calibration targets 75fps on real hardware.
 
 ### 5.2 Key Technical Discoveries
 
@@ -264,10 +264,10 @@ zpac_phase1_test/
 │   ├── zpac_types.h        Structs pacman_t, direction enum, cell flags
 │   ├── maze_logic.h        maze_logic declarations
 │   └── maze_logic.c        Array maze_logic[31][28] with bit flags
-├── zpac_tileset.bin         (43,648 bytes)  Full raw 4bpp tileset (341 tiles)
+├── zpac_tiles.bin           (49,152 bytes)  Full raw 4bpp tileset (384 tiles)
 ├── CMakeLists.txt           CMake build config
 └── build/
-    └── zpac_test.bin        Compiled binary (~8 KB)
+    └── zpac.bin             Compiled binary (~46 KB)
 ```
 
 ---
@@ -294,7 +294,7 @@ clean_tilemap();  // layer0 AND layer1
 gfx_palette_load(&ctx, zpac_palette, 512, 0);
 
 // 6. Tileset from external file (streaming to VRAM in 512B chunks)
-load_tileset_from_file();  // open("H:/zpac_tileset.bin") → read → gfx_tileset_load
+load_tileset_from_file();  // open("zpac_tiles.bin") → read → gfx_tileset_load
 
 // 7. Recreate blank tile (overwritten by tileset load in step 6)
 gfx_tileset_add_color_tile(&ctx, TILE_BLANK, 0);
@@ -354,7 +354,7 @@ The movement system is a clear example of the white-room approach: the original 
 
 ### 8.1 Speed Accumulator — Implementation Evolution
 
-**First iteration (Phase 3.2):** the original system used pixel coordinates with a 32-bit rotating accumulator. It worked but didn't reach the 60fps target.
+**First iteration (Phase 3.2):** the original system used pixel coordinates with a 32-bit rotating accumulator. It worked but performance on the emulator was too slow for smooth gameplay.
 
 **Phase 3 refactor (post-optimization):** critical discovery — the main bottleneck was division/modulo operations to calculate `tile_x` and `tile_y` from pixel coordinates. On Z80, a 16-bit division costs ~300+ cycles. The solution was a complete restructure toward a **tile+sub** system:
 
@@ -374,7 +374,7 @@ if (sub_x == 128 && sub_y == 128) {
 
 **Another critical optimization:** replacement of `gfx_wait_vblank()` (SDK) with a custom `fast_wait_vblank()` that reads the I/O register directly — the SDK performed costly MMU operations on every call.
 
-Result: jump from ~21fps to stable 60fps.
+Result: jump from ~21fps to smooth emulator performance, later recalibrated for 75Hz hardware (see §17.3).
 
 ### 8.2 32-bit Speed Accumulator
 
@@ -542,15 +542,15 @@ The ghost decides its direction **one tile before** the intersection. Algorithm:
 
 ### 11.6 Scatter/Chase Timer (Level 1)
 
-| Phase | Duration | Frames @60fps |
+| Phase | Duration | Frames @75fps |
 |---|---|---|
-| Scatter 1 | 7s | 420 |
-| Chase 1 | 20s | 1200 |
-| Scatter 2 | 7s | 420 |
-| Chase 2 | 20s | 1200 |
-| Scatter 3 | 5s | 300 |
-| Chase 3 | 20s | 1200 |
-| Scatter 4 | 5s | 300 |
+| Scatter 1 | 7s | 525 |
+| Chase 1 | 20s | 1500 |
+| Scatter 2 | 7s | 525 |
+| Chase 2 | 20s | 1500 |
+| Scatter 3 | 5s | 375 |
+| Chase 3 | 20s | 1500 |
+| Scatter 4 | 5s | 375 |
 | Chase 4 | Permanent | — |
 
 On phase change: `reversal_pending` set on all active ghosts.
@@ -560,7 +560,7 @@ On phase change: `reversal_pending` set on all active ghosts.
 - **Pinky**: exits immediately (threshold 0 dots)
 - **Inky**: exits after ~30 dots eaten
 - **Clyde**: exits after ~60 dots eaten
-- **Anti-stall timer**: if ZPac doesn't eat for ~240 frames, the next ghost is force-released
+- **Anti-stall timer**: if ZPac doesn't eat for ~300 frames (~4s at 75fps), the next ghost is force-released
 - **Bouncing in house**: vertical bounce in the room's center tile
 - **Exiting path**: ghost house center → door → exit tile → normal maze
 
@@ -607,10 +607,7 @@ This phase resolved a critical architectural bug discovered during testing:
 
 **Alignment with floooh for frightened mode:** replaced the PRNG-per-direction approach with the reference method: random target (random tile in the maze) + standard distance² pathfinding. The resulting behavior is correct for the arcade.
 
-**Timer recalibration:** timers were calibrated for 60fps but the game actually ran at ~25fps on unoptimized Z80. Recalibrations:
-- Scatter phase 1: 7s × 25fps = 175 frames
-- Chase phase 1: 20s × 25fps = 500 frames
-- Frightened: 6s × 25fps = 150 frames
+**Timer recalibration:** timers went through multiple calibration iterations — first for emulator performance, then for 75Hz real hardware. All final values are calibrated at 75fps (see §11.6 and §17.3).
 
 ### 12.4 Phase 6.3 — Ghost Eating + EYES + Flash
 
@@ -637,9 +634,9 @@ Final step: ZPac as predator, eyes returning home, end-of-frightened flash.
 - On reaching slot → transitions to `GHOST_STATE_LEAVEHOUSE`
 
 **Frightened flash:**
-- In the last ~25 frames of the frightened timer (~1s at 25fps), rendering alternates
+- In the last ~38 frames of the frightened timer (~0.5s at 75fps), rendering alternates
   the palette between PAL_FRIGHTENED (blue, group 6) and PAL_FRIGHT_BLINK (white, group 7)
-  every 4 frames
+  every ~8 frames (~4.7 blinks/sec, per the fright_flash_table introduced in Phase 11b)
 - The flash is implemented in the renderer as a pure palette swap — zero extra tiles
 
 ### 12.5 Phase 6.4 — Level Completion
@@ -652,7 +649,7 @@ When `dots_remaining` reaches zero, the level is complete.
 3. All sprites (ZPac and ghosts) are hidden during the flash
 4. Full reset: `dots_remaining` restored to 244, logic map reinitialized,
    visual maze tiles restored with all dots, actors repositioned to starting coordinates
-5. The level restarts (in this base implementation: same level 1, no numerical progression — level progression is deferred to a future phase)
+5. The level restarts with incremented level counter, applying the appropriate speed tier and fruit type for the new level
 
 **Implementation:**
 - Check `dots_remaining == 0` in the game loop, after every dot/energizer consumption
@@ -692,7 +689,7 @@ Two-voice architecture during gameplay:
 
 Pattern from the arcade reference: a voice whose frequency oscillates between two values following a 16-step ramp. Each step lasts ~2 frames, producing a fast "uauauaua". Implemented on VOICE0 with sawtooth waveform. The full cycle is ~1 second.
 
-Parameters calibrated post-migration to native Linux (effective 60fps):
+Parameters calibrated on hardware at 75fps (step rates ×0.8 applied in Phase 11):
 
 ```c
 #define SIREN_FREQ_BASE   0x00C0   /* ~195 Hz */
@@ -711,7 +708,7 @@ Registers are written directly (no SDK hold/unhold intermediary) to avoid artifa
 
 ### 13.4 Fright Siren (Step 7.4)
 
-Replaces the siren on VOICE0 during frightened mode. Pattern derived from behavioral analysis of the arcade fright siren: base frequency rises by a fixed step each frame for 7 frames, then resets — 8-frame cycle (~0.13s at 60fps), an urgent "whooop-whooop-whooop".
+Replaces the siren on VOICE0 during frightened mode. Pattern derived from behavioral analysis of the arcade fright siren: base frequency rises by a fixed step each frame for 7 frames, then resets — 8-frame cycle (~0.11s at 75fps), an urgent "whooop-whooop-whooop".
 
 Calibrated frequencies (×4 factor vs. direct arcade conversion to compensate for waveform differences):
 
@@ -731,7 +728,7 @@ Brief descending sweep on VOICE1 when ZPac eats a ghost. Triangle voice. One-sho
 
 Pre-compiled sequence of 90 ticks derived from behavioral analysis of the arcade death sound, converted from WSG to Zeal PSG. Occupies VOICE0 and a noise voice during ZPac's death animation.
 
-The jingle lasts exactly 90 ticks (~1.5 seconds at 60fps). A micro-fix was applied to silence a high-frequency "blip" on the last tick (WSG→PSG conversion artifact): the last entry in the table is forced to zero frequency before releasing the voice.
+The jingle lasts exactly 90 ticks (~1.2 seconds at 75fps). A micro-fix was applied to silence a high-frequency "blip" on the last tick (WSG→PSG conversion artifact): the last entry in the table is forced to zero frequency before releasing the voice.
 
 **Technical note — Sample Table abandoned:** In the initial phase, an attempt was made to use the sample table voice for the jingle (superior timbral quality). The attempt produced white noise due to a conflict between `zvb_gfx.lib` and the audio FIFO controller when both libraries are linked. After empirical verification, the problem was attributed to the graphics controller initialization altering shared registers. The sample table remains disabled; the pure PSG jingle is acceptable and rhythmically correct.
 
@@ -801,11 +798,11 @@ Tunnel speed for Blinky in Cruise Elroy: no tunnel speed reduction (as in the ar
 
 ### 14.9 Scatter/Chase Timing per Level (Step 8.9)
 
-Three distinct timing tables: level 1, levels 2–4, levels 5+. Each table defines scatter and chase phase durations in frames at 60fps, faithful to the arcade original. After phase 4 of the cycle, all ghosts remain in permanent chase.
+Three distinct timing tables: level 1, levels 2–4, levels 5+. Each table defines scatter and chase phase durations in frames at 75fps, faithful to the arcade original. After phase 4 of the cycle, all ghosts remain in permanent chase.
 
 **Sprite X-offset bug diagnosed and resolved:** during Phase 8 a −10px misalignment was identified on sprites (ZPac and ghosts appeared shifted left). Resolved with an explicit −10px diagnostic test that confirmed the residual offset; corrected in the sprite rendering code.
 
-**VM → native Linux migration (between Phase 7 and 8):** migration from the VirtualBox environment to native Linux revealed that the emulator was running at ~¼ arcade speed under VM. Post-migration: emulator at 60fps target, ZPac ~9% slower than MAME as benchmark. Consequent recalibrations: speed_tiers halved, `fright_dur` promoted to uint16_t, `anim_tick >> 2` for ZPac's mouth animation (from `>> 1`).
+**VM → native Linux migration (between Phase 7 and 8):** migration from the VirtualBox environment to native Linux revealed that the emulator was running at ~¼ arcade speed under VM. Post-migration, performance recovered; ZPac was subsequently recalibrated first for emulator speed, then definitively for 75Hz real hardware in Phase 11. Intermediate fixes included: `fright_dur` promoted to uint16_t, `anim_tick >> 2` for ZPac's mouth animation (from `>> 1`).
 
 ---
 
@@ -884,7 +881,7 @@ Module `src/cutscene.c` / `src/cutscene.h` with the cutscene framework + Act 1.
 
 **Act 1 — "They Meet":** ZPac and Blinky run leftward across the screen (Phase 1). Then a Big ZPac (48×48px) and a frightened ghost run rightward (Phase 2). Big ZPac uses 27 new tiles (indices 357–383, 3×3 grid × 3 frames) generated mathematically as a circle with arcs for the mouth — smooth curves, not nearest-neighbor upscale. Script `generate_big_pacman_v2.py` with sin/cos for outlines.
 
-**Tileset:** now at 384/512 tiles (128 remaining). `TOTAL_TILES=384`, `TILESET_SIZE=49152`. The `zpac_tileset.bin` file must be copied to the emulator's HostFS path after any tileset change.
+**Tileset:** now at 384/512 tiles (128 remaining). `TOTAL_TILES=384`, `TILESET_SIZE=49152`. The `zpac_tiles.bin` file must be copied to the emulator's HostFS path after any tileset change.
 
 ### 16.4 Cutscene Acts 2 and 3
 
@@ -896,9 +893,9 @@ The intermission melody was reconstructed from publicly documented arcade music 
 
 ### 16.6 Binary Size — Critical Constraint
 
-With Act 2, the binary reached **47,014 bytes** (limit ~48 KB). Every byte matters.
+With Act 2, the binary reached **47,014 bytes** (limit ~48 KB), triggering a dedicated optimization phase (Phase 11b) that brought it back to 45,928 bytes.
 
-Issues identified and resolved:
+Key constraints identified:
 - `zpac_palette` declared `static const` in the header → every `.c` that references it adds 512 bytes to its translation unit. **Rule:** do not reference `zpac_palette` from `cutscene.c`.
 - Tick-by-tick music array (1316 bytes raw) compressed with RLE → **177 bytes** with minimal decoding overhead.
 
@@ -1042,13 +1039,13 @@ All tests performed on real hardware using the level-select shortcut in `game_pl
 
 ## 19. Audio: Architecture and Strategy (Technical Reference)
 
-### 17.1 The Platform Gap
+### 19.1 The Platform Gap
 
 The original arcade audio has a unique character given its wavetable synthesis: custom waveforms reproduced via a WSG chip with 3 voices and 16 volume levels. These waveforms — not pure sinusoids but curves with particular harmonics — give the game its unmistakable timbre.
 
 Zeal has a PSG with 4 standard voices (square, triangle, sawtooth, noise) plus a 256-byte sample voice, with only 4 volume levels.
 
-### 17.2 Approximation Strategy
+### 19.2 Approximation Strategy
 
 90% of recognizing the arcade sounds depends on the pattern of frequencies and rhythm, not the exact timbre. The approximation strategy:
 
@@ -1061,7 +1058,7 @@ Zeal has a PSG with 4 standard voices (square, triangle, sawtooth, noise) plus a
 
 The sample voice (5th) could be used for special effects where timbre is critical, but the 256-byte buffer limitation makes it suitable only for very short sounds.
 
-### 17.3 Relevant Audio Registers
+### 19.3 Relevant Audio Registers
 
 ```
 Frequency formula: freq_hz = (sample_rate × reg_value) / 2^16
@@ -1076,11 +1073,11 @@ Hold:      bitmap for atomic mute/unmute of multiple voices
 
 ---
 
-## 19. Technical References Used
+## 20. Technical References Used
 
 Reference materials are used to *understand* the target behavior — not as code to port. For every system (ghost AI, speed, audio, rendering) the "what" is studied from documentation and published analyses; the "how" is designed specifically for the Zeal.
 
-### 18.1 Project Documentation
+### 20.1 Project Documentation
 
 | File | Content | Role |
 |---|---|---|
@@ -1089,13 +1086,13 @@ Reference materials are used to *understand* the target behavior — not as code
 | `ZPac_analisi_pacman_c_floooh.md` | Analysis of floooh's pacman.c clone | Reference patterns |
 | `pacman_flooh_reference.c` | Full source of the reference clone | Reference code |
 
-### 18.2 Original Arcade Game Documentation
+### 20.2 Original Arcade Game Documentation
 
 | File | Content | Relevance |
 |---|---|---|
 | `The_PAC_Dossier.pdf` | Complete gameplay guide, ghost AI, speed | ⭐⭐⭐ Behavior bible |
 
-### 18.3 Zeal Platform Documentation
+### 20.3 Zeal Platform Documentation
 
 | File | Content |
 |---|---|
@@ -1106,7 +1103,7 @@ Reference materials are used to *understand* the target behavior — not as code
 | `zvb_gfx.h`, `zvb_hardware_h.asm` | SDK headers with registers and constants |
 | `zos_sys.h`, `zos_video.asm`, `zos_keyboard.asm` | OS API and drivers |
 
-### 18.4 Zeal Reference Code
+### 20.4 Zeal Reference Code
 
 | File | Content | What We Learned |
 |---|---|---|
@@ -1118,9 +1115,9 @@ Reference materials are used to *understand* the target behavior — not as code
 
 ---
 
-## 20. Development Chronology
+## 21. Development Chronology
 
-### 19.1 Work Sessions
+### 21.1 Work Sessions
 
 | # | Date | Session | Key Result |
 |---|---|---|---|
@@ -1130,15 +1127,15 @@ Reference materials are used to *understand* the target behavior — not as code
 | — | 22/02 | floooh analysis | pacman.c analyzed: trigger system, ghost AI, movement patterns |
 | — | 22/02 | Mode 5 analysis | Discovery: 329 tiles > 256 Mode 5 limit → Mode 6 decision |
 | 1 | 21/02 | Asset download | Pipeline plan, graphic and audio source URLs |
-| 2 | 21/02 | Asset cleanup | JPEG artifact cleanup, Color ROM palette reconstructed |
-| 3 | 22/02 | Sprite extraction | 66 16×16 sprites extracted from ROM |
-| 4 | 22/02 | Maze + font extraction | 79 maze tiles + 40 font chars decoded |
+| 2 | 21/02 | Asset cleanup | JPEG artifact cleanup, color palette reconstructed from arcade documentation |
+| 3 | 22/02 | Sprite extraction | 66 16×16 sprites reconstructed from arcade documentation |
+| 4 | 22/02 | Maze + font reconstruction | 79 maze tiles + 40 font chars reconstructed |
 | 5 | 22/02 | PNG → ZVB converter | `zpac_gfx.h` generated with full pipeline |
 | 6 | 22/02 | Documentation | zpac_gfxsrc_reference.md created |
 | 7 | 22/02 | Maze test + debug | First maze render on emulator (artifacts) |
-| 8 | 22/02 | Wall alignment | Root cause: wireframe vs solid tile — need ROM tiles |
-| 9 | 22/02 | ROM decode search | Analysis of ASCII maze encoding in pacman.c |
-| 10 | 22/02 | ROM extraction | Maze ROM decoded, 85 solid tiles |
+| 8 | 22/02 | Wall alignment | Root cause: wireframe vs solid tile — need solid tile data |
+| 9 | 22/02 | Maze encoding analysis | ASCII maze structure analyzed from floooh reference |
+| 10 | 22/02 | Maze reconstruction | Maze geometry reconstructed from arcade documentation, 85 solid tiles |
 | **11** | **22/02** | **Phase 1 complete** | **✅ 1.5× maze on emulator, Mode 6 confirmed** |
 | 12 | 22/02 | Sprite strategy | 2×2 composite decision (Option F) |
 | 13 | 23/02 | Tile budget analysis | 438/512 estimated → 329/512 after dedup |
@@ -1156,7 +1153,7 @@ Reference materials are used to *understand* the target behavior — not as code
 | **25** | **25/02** | **Step 3.4** | **✅ Dot eating with deferred tile replacement, eating pause** |
 | 26 | 25/02 | Step 3.5 | Tunnel wrap-around ✅ |
 | 27 | 02/03 | Phase 3 perf | Bottleneck ~21fps: tile+sub refactor, fast_wait_vblank |
-| **28** | **02/03** | **Phase 3 complete** | **✅ Stable 60fps, arcade-accurate movement, score HUD** |
+| **28** | **02/03** | **Phase 3 complete** | **✅ Smooth emulator performance, arcade-accurate movement, score HUD** |
 | 29 | 02/03 | Phase 4 step 4.1 | Ghost struct + base movement |
 | 30 | 02/03 | Phase 4 step 4.2 | Ghost sprite rendering 2×2 composite |
 | 31 | 02/03 | Phase 4 step 4.3 | Game loop integration |
@@ -1164,7 +1161,7 @@ Reference materials are used to *understand* the target behavior — not as code
 | 33 | 02/03 | Phase 4 step 4.5 | Scatter AI with distance² pathfinding + tie-breaking |
 | 34 | 02/03 | Phase 4 step 4.6 | Scatter/chase timer + global reversal |
 | 35 | 02/03 | Phase 4 step 4.7 | Individual chase targeting (Blinky/Pinky/Inky/Clyde) |
-| **36** | **02/03** | **Phase 4 complete** | **✅ PM↔ghost collision, scatter/chase working** |
+| **36** | **02/03** | **Phase 4 complete** | **✅ ZPac↔ghost collision, scatter/chase working** |
 | 37 | 02/03 | Phase 5 step 5.1 | Ghost house state machine + bouncing |
 | 38 | 02/03 | Phase 5 step 5.2 | Individual dot counter for exit ordering |
 | 39 | 02/03 | Phase 5 step 5.3 | Exiting path (ghost house → maze) |
@@ -1175,7 +1172,7 @@ Reference materials are used to *understand* the target behavior — not as code
 | 44 | 02/03 | Phase 5 step 5.8 | Speed differentiation by state |
 | **45** | **02/03** | **Phase 5 complete** | **✅ Complete ghost AI, frightened/eyes, score chain** |
 | 46 | 02/03 | Phase 6.1 | Frightened State Base: blue sprites, PRNG, timer, reversal |
-| 47 | 02/03 | Phase 6.2 | AI Fix: double-processing bug, floooh alignment, timers recalibrated @25fps |
+| 47 | 02/03 | Phase 6.2 | AI Fix: double-processing bug, floooh alignment, timers recalibrated for emulator |
 | 48 | 04/03 | Phase 6.3 | Ghost eating + EYES + ENTERHOUSE + frightened flash |
 | **49** | **04/03** | **Phase 6 complete** | **✅ Full frightened mode: eating, progressive score, eyes, flash** |
 | 50 | 04/03 | Phase 6.4 | Level completion: dots_remaining==0 check, maze blink, level reset |
@@ -1186,11 +1183,11 @@ Reference materials are used to *understand* the target behavior — not as code
 | 55 | 05/03 | Phase 7 step 7.3 | Waka-waka on VOICE1 square, alternating toggle, direct register writes |
 | 56 | 05/03 | Phase 7 step 7.4 | Fright siren, correct ×4 frequencies after calibration, 8-frame cycle |
 | 57 | 05/03 | Phase 7 step 7.5 | Ghost eaten sweep on VOICE1 |
-| 58 | 05/03 | Phase 7 step 7.6 | Death jingle 90 ticks from floooh register dump, final blip micro-fix |
+| 58 | 05/03 | Phase 7 step 7.6 | Death jingle 90 ticks from behavioral analysis of arcade audio, final blip micro-fix |
 | 59 | 05/03 | Sample table attempt | zvb_gfx vs FIFO audio conflict → abandoned, pure PSG definitive |
 | **60** | **05/03** | **Phase 7 complete** | **✅ Full audio: siren, waka, fright, eaten, death jingle** |
-| 61 | 05/03 | VM → Linux migration | VirtualBox throttled to ¼ speed, native Linux = real 60fps |
-| 62 | 05/03 | Timing recalibration | speed_tiers halved, fright_dur → uint16_t, anim_tick >> 2 |
+| 61 | 05/03 | VM → Linux migration | VirtualBox throttled to ¼ speed, native Linux restored real performance |
+| 62 | 05/03 | Timing recalibration | Emulator-phase calibration: speed_tiers adjusted, fright_dur → uint16_t, anim_tick >> 2 |
 | 63 | 07/03 | Phase 8 step 8.1 | Lives system + GAME OVER state |
 | 64 | 07/03 | Phase 8 step 8.2 | Lives HUD sprite 2×2, calibration py=456 gap=16px |
 | 65 | 07/03 | Phase 8 step 8.3 | Death animation 12 frames |
@@ -1228,7 +1225,7 @@ Reference materials are used to *understand* the target behavior — not as code
 | 97 | 14/03 | Phase 11b — Validation | All cutscenes + Level 256 tested via shortcut on hardware; shortcut removed |
 | **98** | **14/03** | **Phase 11b complete** | **✅ Binary 45,928 bytes; all timing arcade-accurate; 3.2 KB margin** |
 
-### 19.2 Lessons Learned (Cumulative Log)
+### 21.2 Lessons Learned (Cumulative Log)
 
 **Phase 1:**
 
@@ -1288,7 +1285,7 @@ Reference materials are used to *understand* the target behavior — not as code
 **Phase 8:**
 
 - **L32:** Migrating from VM to native Linux revealed that VirtualBox throttling was completely masking real performance. All game timers must be recalibrated when the execution platform changes.
-- **L33:** The `uint8_t` type for `fright_duration` is insufficient at 60fps (max 255 frames = 4.25s). `uint16_t` is needed for higher levels (up to ~600 frames).
+- **L33:** The `uint8_t` type for `fright_duration` is insufficient at 75fps (max 255 frames = 3.4s). `uint16_t` is needed for higher levels (up to ~600 frames at 75fps).
 - **L34:** Fruit score popups as hardware sprites (rather than tilemap tiles) avoid having to alter and restore tilemap logic during transient events.
 - **L35:** A systematic sprite offset (−10px on the X axis) can accumulate from multiple independent sources. A diagnostic test with a known offset (explicit −10px) is the fastest method to isolate and measure each source's contribution.
 
@@ -1324,16 +1321,16 @@ Reference materials are used to *understand* the target behavior — not as code
 
 ---
 
-## 21. Current Status and Next Steps
+## 22. Current Status and Next Steps
 
-### 20.1 Completed Phases
+### 22.1 Completed Phases
 
 | Phase | Status | Date | Evidence |
 |---|---|---|---|
 | Phase 1 — Maze rendering | ✅ | 22/02/2026 | Solid blue walls, 244 dots, ghost house door, centered maze |
 | Phase 2 — Sprites, font, palette | ✅ | 23/02/2026 | ZPac + 4 ghosts with correct colors, HUD, 16 palette groups |
 | Memory milestone | ✅ | 23/02/2026 | Binary from 49KB to 7KB, 40KB free, external tileset |
-| Phase 3 — Interactive gameplay | ✅ | 25/02/2026 | Movement, animation, eating, tunnel, 60fps |
+| Phase 3 — Interactive gameplay | ✅ | 25/02/2026 | Movement, animation, eating, tunnel, smooth emulator performance |
 | Phase 4 — Ghost AI base | ✅ | 02/03/2026 | Scatter/chase, pathfinding, reversal, PM collision |
 | Phase 5 — Complete ghost AI | ✅ | 02/03/2026 | Ghost house, frightened, eyes, score chain |
 | Phase 6 — Frightened Mode | ✅ | 04/03/2026 | Ghost eating 200-1600, EYES→ENTERHOUSE, flash, level completion |
@@ -1344,11 +1341,11 @@ Reference materials are used to *understand* the target behavior — not as code
 | Phase 11 — Hardware Port & Calibration | ✅ | 14/03/2026 | Running on real hardware, 75Hz calibration, SNES controller, dual-path tileset |
 | Phase 11b — Timing Audit & Size Optimization | ✅ | 14/03/2026 | Speed tables corrected, Elroy/dot limits per-level, binary 47014→45928 bytes |
 
-### 20.2 Technical Debt
+### 22.2 Technical Debt
 
 - **Timing**: arcade-perfect at 3.76s vs 3.78s MAME reference (−0.5%) on real hardware at 75Hz.
 - **Binary size**: 45,928 bytes on ~48KB available (~3.2 KB margin). Sufficient for minor features; major additions would require `--max-allocs-per-node 50000` or further structural compression.
-### 20.3 Open Items
+### 22.3 Open Items
 
 | Item | Status |
 |---|---|
@@ -1356,11 +1353,11 @@ Reference materials are used to *understand* the target behavior — not as code
 
 ---
 
-## 22. Architectural Patterns Adopted
+## 23. Architectural Patterns Adopted
 
 The architectural patterns were not chosen arbitrarily: each is the result of a joint evaluation where Azuech defined the priorities (authenticity, simplicity, testability) and Claude proposed technical options with their trade-offs.
 
-### 21.1 From floooh/pacman.c: Temporal Triggers (Decision: Adopt with Reservations)
+### 23.1 From floooh/pacman.c: Temporal Triggers (Decision: Adopt with Reservations)
 
 The most elegant pattern from the reference clone. Instead of complex state machines, every event is a timestamp to compare against the current tick:
 
@@ -1376,23 +1373,23 @@ typedef struct { uint32_t tick; } trigger_t;
 
 Cost: 4 bytes per timer. Replaces callbacks, event queues, and complex state machines.
 
-### 21.2 From Z-Fighter: Game State Separation
+### 23.2 From Z-Fighter: Game State Separation
 
 The game follows a state machine with consistent functions for each state:
 `state_xxx_enter()`, `state_xxx_update()`, `state_xxx_exit()`.
 
-### 21.3 From snake.c: VBlank Sync and Input
+### 23.3 From snake.c: VBlank Sync and Input
 
 The basic Zeal game loop pattern comes from the Snake game included with the SDK:
 `gfx_wait_vblank()` for synchronization, `ioctl()` with `KB_READ_NON_BLOCK` for non-blocking input.
 
-### 21.4 Single Global State
+### 23.4 Single Global State
 
 Following the floooh model, all game state lives in a single nested global struct — zero dynamic allocations, maximum predictability on Z80.
 
 ---
 
-## 23. Glossary
+## 24. Glossary
 
 | Term | Meaning in the ZPac Context |
 |---|---|

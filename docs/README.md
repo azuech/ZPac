@@ -1069,7 +1069,7 @@ Hold:      bitmap for atomic mute/unmute of multiple voices
 
 ## 20. Technical References Used
 
-Reference materials are used to *understand* the target behavior — not as code to port. For every system (ghost AI, speed, audio, rendering) the "what" is studied from documentation and published analyses; the "how" is designed specifically for the Zeal.
+Reference materials are used to *understand* the target behavior. For every system (ghost AI, speed, audio, rendering) the "what" is studied from documentation and published analyses; the "how" is designed specifically for the Zeal.
 
 ### 20.1 Project Documentation
 
@@ -1077,8 +1077,8 @@ Reference materials are used to *understand* the target behavior — not as code
 |---|---|---|
 | `ZPac_Game_Design_Document_v3.1.md` | Complete architecture, technical specs, phase plan | Master document |
 | `ZPac_Reference.md` | Session log, lessons learned, quick reference | Technical diary |
-| `ZPac_analisi_pacman_c_floooh.md` | Analysis of floooh's pacman.c clone | Reference patterns |
-| `pacman_flooh_reference.c` | Full source of the reference clone | Reference code |
+| `ZPac_analisi_c_floooh.md` | Analysis of floooh's c clone | Reference patterns |
+| `flooh_reference.c` | Full source of the reference clone | Reference code |
 
 ### 20.2 Original Arcade Game Documentation
 

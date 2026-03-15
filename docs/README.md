@@ -23,7 +23,7 @@ The choice of game is not arbitrary. The classic arcade game is probably the bes
 
 **It is tile-based.** The entire gameplay is built on a tile grid: the maze is a tilemap, the dots are tiles, and the actors' movement follows the grid. This maps perfectly to the Zeal video board's tilemap + sprite architecture.
 
-**It is extraordinarily well-documented.** Between the Pac-Man Dossier (Jamey Pittman), emulation guides (Chris Lomont), and reference implementations like floooh's pacman.c, there is probably no other arcade game analyzed in more depth. Every animation frame, every ghost AI algorithm, every speed table is documented.
+**It is extraordinarily well-documented.** Between "the Dossier" (Jamey Pittman), emulation guides (Chris Lomont), and reference implementations like floooh's c version, there is probably no other arcade game analyzed in more depth. Every animation frame, every ghost AI algorithm, every speed table is documented.
 
 **It is an authenticity benchmark.** The arcade version has been ported to dozens of platforms, from the Atari 2600 to modern browsers. The quality of a port is measured by its fidelity to the original behaviors — the ghost chase/scatter pattern, cornering, eating pauses, tunnel slowdown. If ZPac can reproduce these details, it proves that Zeal is a serious gaming platform.
 
